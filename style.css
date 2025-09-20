@@ -41,12 +41,6 @@ body {
     font-weight: bold;
 }
 
-.logo-img {
-    height: 50px;
-    width: auto;
-    max-width: 200px;
-    object-fit: contain;
-}
 
 .nav {
     display: flex;
@@ -397,6 +391,7 @@ body {
     text-align: center;
     padding: 2rem 0;
 }
+
 
 /* Modal */
 .modal {
@@ -775,10 +770,6 @@ body {
         font-size: 1.5rem;
     }
     
-    .logo-img {
-        height: 40px;
-        max-width: 150px;
-    }
     
     .nav {
         gap: 0.5rem;
@@ -937,6 +928,22 @@ body {
         font-size: 1rem;
     }
     
+    .whatsapp-float {
+        bottom: 15px;
+        right: 15px;
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    
+    .whatsapp-text {
+        display: none;
+    }
+    
+    .whatsapp-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
     .send-whatsapp-btn {
         order: 2;
         background: #25d366;
@@ -962,10 +969,6 @@ body {
         font-size: 1.3rem;
     }
     
-    .logo-img {
-        height: 35px;
-        max-width: 120px;
-    }
     
     .nav {
         gap: 0.3rem;
@@ -1080,6 +1083,18 @@ body {
     .back-btn, .send-whatsapp-btn {
         padding: 0.9rem;
         font-size: 0.9rem;
+    }
+    
+    .whatsapp-float {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+    
+    .whatsapp-icon {
+        width: 18px;
+        height: 18px;
     }
 }
 
