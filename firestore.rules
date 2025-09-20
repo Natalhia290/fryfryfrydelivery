@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permitir leitura e escrita para todos (cardápio público)
+    match /cardapio/{document} {
+      allow read, write: if true;
+    }
+    
+    // Permitir leitura e escrita para todos os outros documentos
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

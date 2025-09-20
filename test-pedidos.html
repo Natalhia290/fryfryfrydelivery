@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Pedidos - FRY Sushi</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        .info { background-color: #e3f2fd; border-color: #2196f3; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .pedido { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <h1>📋 Teste de Pedidos - FRY Sushi Delivery</h1>
+    
+    <div class="test-section info">
+        <h3>📊 Status da Conexão</h3>
+        <p id="connectionStatus">Verificando...</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>🧪 Teste de Pedidos</h3>
+        <button onclick="createTestOrder()">Criar Pedido de Teste</button>
+        <button onclick="loadOrders()">Carregar Pedidos</button>
+        <button onclick="clearOrders()">Limpar Pedidos</button>
+        <div id="ordersList"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔄 Teste em Tempo Real</h3>
+        <p>Abra este arquivo em duas abas e crie pedidos em uma para ver em tempo real na outra!</p>
+        <div id="realtimeOrders"></div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let ordersListener = null;
+        
+        function testConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            try {
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    statusEl.textContent = '✅ Firebase conectado com sucesso!';
+                    statusEl.parentElement.className = 'test-section success';
+                } else {
+                    statusEl.textContent = '❌ Firebase não inicializado';
+                    statusEl.parentElement.className = 'test-section error';
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Erro: ' + error.message;
+                statusEl.parentElement.className = 'test-section error';
+            }
+        }
+        
+        async function createTestOrder() {
+            try {
+                const testOrder = {
+                    customerName: 'Cliente Teste ' + Date.now(),
+                    customerPhone: '(62) 99999-9999',
+                    customerAddress: 'Rua Teste, 123 - Goiânia',
+                    notes: 'Pedido de teste criado em ' + new Date().toLocaleString(),
+                    items: [{
+                        name: 'Big Hot de Tilápia',
+                        price: 49.90,
+                        quantity: 1,
+                        emoji: '🍣'
+                    }],
+                    total: 49.90,
+                    status: 'Novo',
+                    timestamp: new Date(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const docRef = await db.collection('pedidos').add(testOrder);
+                alert('✅ Pedido de teste criado com ID: ' + docRef.id);
+                loadOrders();
+            } catch (error) {
+                alert('❌ Erro ao criar pedido: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        async function loadOrders() {
+            try {
+                const snapshot = await db.collection('pedidos').get();
+                const ordersList = document.getElementById('ordersList');
+                
+                if (snapshot.empty) {
+                    ordersList.innerHTML = '<p>Nenhum pedido encontrado</p>';
+                    return;
+                }
+                
+                let html = '<h4>Pedidos encontrados:</h4>';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    html += `
+                        <div class="pedido">
+                            <strong>ID:</strong> ${doc.id}<br>
+                            <strong>Cliente:</strong> ${data.customerName}<br>
+                            <strong>Telefone:</strong> ${data.customerPhone}<br>
+                            <strong>Status:</strong> ${data.status}<br>
+                            <strong>Total:</strong> R$ ${data.total.toFixed(2).replace('.', ',')}<br>
+                            <strong>Data:</strong> ${new Date(data.timestamp?.toDate ? data.timestamp.toDate() : data.timestamp).toLocaleString('pt-BR')}
+                        </div>
+                    `;
+                });
+                
+                ordersList.innerHTML = html;
+            } catch (error) {
+                alert('❌ Erro ao carregar pedidos: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function startRealtimeListener() {
+            if (ordersListener) {
+                ordersListener(); // Parar listener anterior
+            }
+            
+            ordersListener = db.collection('pedidos').onSnapshot((snapshot) => {
+                const realtimeOrders = document.getElementById('realtimeOrders');
+                let html = '<h4>Pedidos em tempo real:</h4>';
+                
+                if (snapshot.empty) {
+                    html += '<p>Nenhum pedido</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        html += `
+                            <div class="pedido">
+                                <strong>ID:</strong> ${doc.id}<br>
+                                <strong>Cliente:</strong> ${data.customerName}<br>
+                                <strong>Status:</strong> ${data.status}<br>
+                                <strong>Total:</strong> R$ ${data.total.toFixed(2).replace('.', ',')}
+                            </div>
+                        `;
+                    });
+                }
+                
+                realtimeOrders.innerHTML = html;
+            }, (error) => {
+                console.error('Erro no listener:', error);
+                document.getElementById('realtimeOrders').innerHTML = '<p style="color: red;">Erro no listener: ' + error.message + '</p>';
+            });
+        }
+        
+        async function clearOrders() {
+            if (confirm('Tem certeza que deseja apagar todos os pedidos?')) {
+                try {
+                    const snapshot = await db.collection('pedidos').get();
+                    const batch = db.batch();
+                    
+                    snapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    
+                    await batch.commit();
+                    alert('✅ Todos os pedidos foram removidos');
+                    loadOrders();
+                } catch (error) {
+                    alert('❌ Erro ao limpar pedidos: ' + error.message);
+                }
+            }
+        }
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            testConnection();
+            loadOrders();
+            startRealtimeListener();
+        });
+    </script>
+</body>
+</html>

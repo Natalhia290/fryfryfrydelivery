@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Completo de Pedidos - FRY Sushi</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        .info { background-color: #e3f2fd; border-color: #2196f3; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #ff6b6b; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #ee5a24; }
+        .pedido { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #ff6b6b; }
+        .status { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status.novo { background: #e74c3c; color: white; }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .cart-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🍣 Teste Completo de Pedidos - FRY Sushi Delivery</h1>
+        
+        <div class="test-section info">
+            <h3>📊 Status da Conexão Firebase</h3>
+            <p id="connectionStatus">Verificando...</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🛒 Simular Pedido do Cliente</h3>
+            <div class="form-group">
+                <label>Nome do Cliente:</label>
+                <input type="text" id="customerName" value="João Silva" placeholder="Digite o nome">
+            </div>
+            <div class="form-group">
+                <label>Telefone:</label>
+                <input type="text" id="customerPhone" value="(62) 99999-9999" placeholder="(62) 99999-9999">
+            </div>
+            <div class="form-group">
+                <label>Endereço:</label>
+                <textarea id="customerAddress" rows="3" placeholder="Rua, número, bairro, cidade">Rua das Flores, 123 - Setor Central - Goiânia</textarea>
+            </div>
+            <div class="form-group">
+                <label>Observações:</label>
+                <textarea id="orderNotes" rows="2" placeholder="Observações do pedido">Sem cebola, ponto da carne</textarea>
+            </div>
+            
+            <h4>Itens do Pedido:</h4>
+            <div id="cartItems">
+                <div class="cart-item">
+                    <span>🍣 Big Hot de Tilápia x2</span>
+                    <span>R$ 99,80</span>
+                </div>
+                <div class="cart-item">
+                    <span>🌭 Sushi Dog de Salmão x1</span>
+                    <span>R$ 24,90</span>
+                </div>
+                <div class="cart-item">
+                    <strong>Total: R$ 124,70</strong>
+                </div>
+            </div>
+            
+            <button onclick="createOrder()">📱 Criar Pedido (Simular Cliente)</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 Pedidos em Tempo Real (Painel Admin)</h3>
+            <button onclick="loadOrders()">🔄 Atualizar Lista</button>
+            <button onclick="startRealtimeListener()">👁️ Iniciar Monitoramento</button>
+            <button onclick="stopRealtimeListener()">⏹️ Parar Monitoramento</button>
+            <div id="ordersList"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Debug e Logs</h3>
+            <button onclick="testFirebaseConnection()">Testar Conexão</button>
+            <button onclick="clearAllOrders()">🗑️ Limpar Todos os Pedidos</button>
+            <div id="debugInfo"></div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let ordersListener = null;
+        let orders = [];
+        
+        // Simular carrinho de compras
+        const cart = [
+            { name: 'Big Hot de Tilápia', price: 49.90, quantity: 2, emoji: '🍣' },
+            { name: 'Sushi Dog de Salmão', price: 24.90, quantity: 1, emoji: '🌭' }
+        ];
+        
+        function testConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            try {
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    statusEl.textContent = '✅ Firebase conectado com sucesso!';
+                    statusEl.parentElement.className = 'test-section success';
+                    return true;
+                } else {
+                    statusEl.textContent = '❌ Firebase não inicializado';
+                    statusEl.parentElement.className = 'test-section error';
+                    return false;
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Erro: ' + error.message;
+                statusEl.parentElement.className = 'test-section error';
+                return false;
+            }
+        }
+        
+        async function createOrder() {
+            try {
+                console.log('🍣 Criando pedido...');
+                
+                const name = document.getElementById('customerName').value;
+                const phone = document.getElementById('customerPhone').value;
+                const address = document.getElementById('customerAddress').value;
+                const notes = document.getElementById('orderNotes').value;
+                
+                if (!name || !phone || !address) {
+                    alert('❌ Por favor, preencha todos os campos obrigatórios!');
+                    return;
+                }
+                
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                
+                const order = {
+                    customerName: name,
+                    customerPhone: phone,
+                    customerAddress: address,
+                    notes: notes || '',
+                    items: cart.map(item => ({
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        emoji: item.emoji
+                    })),
+                    total: total,
+                    status: 'Novo',
+                    timestamp: new Date(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                console.log('📝 Dados do pedido:', order);
+                
+                const docRef = await db.collection('pedidos').add(order);
+                console.log('✅ Pedido salvo com ID:', docRef.id);
+                
+                alert(`✅ Pedido criado com sucesso!\nID: ${docRef.id}\nCliente: ${name}\nTotal: R$ ${total.toFixed(2).replace('.', ',')}`);
+                
+                // Atualizar lista imediatamente
+                loadOrders();
+                
+            } catch (error) {
+                console.error('❌ Erro ao criar pedido:', error);
+                alert('❌ Erro ao criar pedido: ' + error.message);
+            }
+        }
+        
+        async function loadOrders() {
+            try {
+                console.log('📋 Carregando pedidos...');
+                const snapshot = await db.collection('pedidos').get();
+                const ordersList = document.getElementById('ordersList');
+                
+                console.log('📊 Pedidos encontrados:', snapshot.size);
+                
+                if (snapshot.empty) {
+                    ordersList.innerHTML = '<p style="text-align: center; padding: 2rem; color: #666;">Nenhum pedido encontrado</p>';
+                    return;
+                }
+                
+                let html = `<h4>📋 ${snapshot.size} Pedido(s) encontrado(s):</h4>`;
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                    
+                    html += `
+                        <div class="pedido">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <strong>ID: ${doc.id}</strong>
+                                <span class="status ${data.status.toLowerCase()}">${data.status}</span>
+                            </div>
+                            <div><strong>👤 Cliente:</strong> ${data.customerName}</div>
+                            <div><strong>📱 Telefone:</strong> ${data.customerPhone}</div>
+                            <div><strong>📍 Endereço:</strong> ${data.customerAddress}</div>
+                            ${data.notes ? `<div><strong>📝 Observações:</strong> ${data.notes}</div>` : ''}
+                            <div><strong>🛒 Itens:</strong></div>
+                            ${data.items.map(item => `
+                                <div style="margin-left: 20px;">
+                                    ${item.emoji} ${item.name} x${item.quantity} = R$ ${(item.price * item.quantity).toFixed(2).replace('.', ',')}
+                                </div>
+                            `).join('')}
+                            <div><strong>💰 Total:</strong> R$ ${data.total.toFixed(2).replace('.', ',')}</div>
+                            <div><strong>⏰ Data:</strong> ${timestamp.toLocaleString('pt-BR')}</div>
+                        </div>
+                    `;
+                });
+                
+                ordersList.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar pedidos:', error);
+                document.getElementById('ordersList').innerHTML = '<p style="color: red;">❌ Erro ao carregar pedidos: ' + error.message + '</p>';
+            }
+        }
+        
+        function startRealtimeListener() {
+            if (ordersListener) {
+                ordersListener(); // Parar listener anterior
+            }
+            
+            console.log('👁️ Iniciando monitoramento em tempo real...');
+            
+            ordersListener = db.collection('pedidos').onSnapshot((snapshot) => {
+                console.log('🔄 Snapshot recebido:', snapshot.size, 'pedidos');
+                
+                const ordersList = document.getElementById('ordersList');
+                let html = `<h4>👁️ Monitoramento em Tempo Real - ${snapshot.size} Pedido(s):</h4>`;
+                
+                if (snapshot.empty) {
+                    html += '<p style="text-align: center; padding: 2rem; color: #666;">Nenhum pedido encontrado</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                        
+                        html += `
+                            <div class="pedido">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong>ID: ${doc.id}</strong>
+                                    <span class="status ${data.status.toLowerCase()}">${data.status}</span>
+                                </div>
+                                <div><strong>👤 Cliente:</strong> ${data.customerName}</div>
+                                <div><strong>📱 Telefone:</strong> ${data.customerPhone}</div>
+                                <div><strong>📍 Endereço:</strong> ${data.customerAddress}</div>
+                                <div><strong>💰 Total:</strong> R$ ${data.total.toFixed(2).replace('.', ',')}</div>
+                                <div><strong>⏰ Data:</strong> ${timestamp.toLocaleString('pt-BR')}</div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                ordersList.innerHTML = html;
+                
+            }, (error) => {
+                console.error('❌ Erro no listener:', error);
+                document.getElementById('ordersList').innerHTML = '<p style="color: red;">❌ Erro no monitoramento: ' + error.message + '</p>';
+            });
+            
+            alert('👁️ Monitoramento em tempo real iniciado! Faça um pedido para testar.');
+        }
+        
+        function stopRealtimeListener() {
+            if (ordersListener) {
+                ordersListener();
+                ordersListener = null;
+                console.log('⏹️ Monitoramento parado');
+                alert('⏹️ Monitoramento parado');
+            }
+        }
+        
+        async function testFirebaseConnection() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML = '<p>Testando conexão...</p>';
+            
+            try {
+                // Testar conexão
+                const isConnected = testConnection();
+                
+                // Testar leitura
+                const snapshot = await db.collection('pedidos').limit(1).get();
+                
+                // Testar escrita
+                const testDoc = await db.collection('test').add({
+                    test: true,
+                    timestamp: new Date()
+                });
+                
+                // Limpar documento de teste
+                await db.collection('test').doc(testDoc.id).delete();
+                
+                debugInfo.innerHTML = `
+                    <div style="color: green;">
+                        <p>✅ Conexão Firebase: OK</p>
+                        <p>✅ Leitura de dados: OK</p>
+                        <p>✅ Escrita de dados: OK</p>
+                        <p>✅ Pedidos no banco: ${snapshot.size}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                debugInfo.innerHTML = `
+                    <div style="color: red;">
+                        <p>❌ Erro: ${error.message}</p>
+                        <p>❌ Código: ${error.code}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function clearAllOrders() {
+            if (confirm('⚠️ Tem certeza que deseja apagar TODOS os pedidos? Esta ação não pode ser desfeita!')) {
+                try {
+                    const snapshot = await db.collection('pedidos').get();
+                    const batch = db.batch();
+                    
+                    snapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    
+                    await batch.commit();
+                    alert(`✅ ${snapshot.size} pedidos removidos com sucesso!`);
+                    loadOrders();
+                    
+                } catch (error) {
+                    alert('❌ Erro ao limpar pedidos: ' + error.message);
+                }
+            }
+        }
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            testConnection();
+            loadOrders();
+        });
+    </script>
+</body>
+</html>

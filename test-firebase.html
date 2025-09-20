@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Firebase - FRY Sushi</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <h1>🧪 Teste Firebase - FRY Sushi Delivery</h1>
+    
+    <div class="test-section" id="connectionTest">
+        <h3>📊 Teste de Conexão</h3>
+        <p id="connectionStatus">Testando...</p>
+        <button onclick="testConnection()">Testar Conexão</button>
+    </div>
+    
+    <div class="test-section" id="menuTest">
+        <h3>🍣 Teste do Cardápio</h3>
+        <p id="menuStatus">Testando...</p>
+        <button onclick="testMenu()">Testar Cardápio</button>
+    </div>
+    
+    <div class="test-section" id="orderTest">
+        <h3>📋 Teste de Pedidos</h3>
+        <p id="orderStatus">Testando...</p>
+        <button onclick="testOrder()">Testar Pedido</button>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        function testConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            const testEl = document.getElementById('connectionTest');
+            
+            try {
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    statusEl.textContent = '✅ Firebase conectado com sucesso!';
+                    testEl.className = 'test-section success';
+                } else {
+                    statusEl.textContent = '❌ Firebase não inicializado';
+                    testEl.className = 'test-section error';
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Erro: ' + error.message;
+                testEl.className = 'test-section error';
+            }
+        }
+        
+        async function testMenu() {
+            const statusEl = document.getElementById('menuStatus');
+            const testEl = document.getElementById('menuTest');
+            
+            try {
+                const doc = await db.collection('cardapio').doc('menu').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const categories = Object.keys(data);
+                    statusEl.textContent = `✅ Cardápio carregado! Categorias: ${categories.join(', ')}`;
+                    testEl.className = 'test-section success';
+                } else {
+                    statusEl.textContent = '⚠️ Nenhum cardápio encontrado no Firebase';
+                    testEl.className = 'test-section error';
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Erro ao carregar cardápio: ' + error.message;
+                testEl.className = 'test-section error';
+            }
+        }
+        
+        async function testOrder() {
+            const statusEl = document.getElementById('orderStatus');
+            const testEl = document.getElementById('orderTest');
+            
+            try {
+                const testOrder = {
+                    customerName: 'Teste',
+                    customerPhone: '(62) 99999-9999',
+                    customerAddress: 'Endereço de teste',
+                    items: [{
+                        name: 'Produto Teste',
+                        price: 10.00,
+                        quantity: 1
+                    }],
+                    total: 10.00,
+                    status: 'Novo',
+                    timestamp: new Date()
+                };
+                
+                await db.collection('pedidos').add(testOrder);
+                statusEl.textContent = '✅ Pedido de teste salvo com sucesso!';
+                testEl.className = 'test-section success';
+            } catch (error) {
+                statusEl.textContent = '❌ Erro ao salvar pedido: ' + error.message;
+                testEl.className = 'test-section error';
+            }
+        }
+        
+        // Testar automaticamente ao carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            testConnection();
+        });
+    </script>
+</body>
+</html>

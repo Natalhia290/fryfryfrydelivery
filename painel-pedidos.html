@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - FRY Sushi Delivery</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin-style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <!-- Header Admin -->
+    <header class="admin-header">
+        <div class="container">
+            <div class="admin-logo">
+                <h1>🍣 FRY - Painel Administrativo</h1>
+            </div>
+            <nav class="admin-nav">
+                <button id="menuTab" class="tab-btn active">Cardápio</button>
+                <button id="pedidosTab" class="tab-btn">Pedidos</button>
+                <button id="logoutBtn" class="logout-btn">Sair</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="admin-main">
+        <div class="container">
+            <!-- Tab Cardápio -->
+            <div id="cardapioTab" class="tab-content active">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2>Gerenciar Cardápio</h2>
+                        <button id="addProductBtn" class="add-btn">+ Adicionar Produto</button>
+                    </div>
+
+                    <!-- Filtros Admin -->
+                    <div class="admin-filtros">
+                        <button class="admin-filtro-btn active" data-categoria="todos">Todos</button>
+                        <button class="admin-filtro-btn" data-categoria="bigHots">Big Hots</button>
+                        <button class="admin-filtro-btn" data-categoria="sushiDog">Sushi Dog</button>
+                        <button class="admin-filtro-btn" data-categoria="combos">Combos</button>
+                        <button class="admin-filtro-btn" data-categoria="bebidas">Bebidas</button>
+                        <button class="admin-filtro-btn" data-categoria="adicionais">Adicionais</button>
+                    </div>
+
+                    <!-- Lista de Produtos -->
+                    <div id="adminProdutos" class="admin-produtos">
+                        <!-- Produtos serão carregados dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Pedidos -->
+            <div id="pedidosTab" class="tab-content">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2>📋 Pedidos em Tempo Real</h2>
+                        <div class="pedidos-stats">
+                            <span class="stat-item">Total: <span id="totalPedidos">0</span></span>
+                            <span class="stat-item">Novos: <span id="novosPedidos">0</span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros de Status -->
+                    <div class="pedidos-filtros">
+                        <button class="pedido-filtro-btn active" data-status="todos">Todos</button>
+                        <button class="pedido-filtro-btn" data-status="Novo">Novos</button>
+                        <button class="pedido-filtro-btn" data-status="Confirmado">Confirmados</button>
+                        <button class="pedido-filtro-btn" data-status="Preparando">Preparando</button>
+                        <button class="pedido-filtro-btn" data-status="Saiu para entrega">Saiu para entrega</button>
+                        <button class="pedido-filtro-btn" data-status="Entregue">Entregues</button>
+                    </div>
+                    
+                    <!-- Lista de Pedidos -->
+                    <div id="pedidosList" class="pedidos-list">
+                        <div class="loading-pedidos">
+                            <div class="spinner"></div>
+                            <p>Carregando pedidos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Adicionar/Editar Produto -->
+    <div id="productModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Adicionar Produto</h2>
+            <form id="productForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productName">Nome do Produto:</label>
+                        <input type="text" id="productName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productCategory">Categoria:</label>
+                        <select id="productCategory" required>
+                            <option value="">Selecione uma categoria</option>
+                            <option value="bigHots">Big Hots</option>
+                            <option value="sushiDog">Sushi Dog</option>
+                            <option value="combos">Combos</option>
+                            <option value="bebidas">Bebidas</option>
+                            <option value="adicionais">Adicionais</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPrice">Preço (R$):</label>
+                        <input type="number" id="productPrice" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productEmoji">Emoji:</label>
+                        <input type="text" id="productEmoji" placeholder="🍣" maxlength="2">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="productDescription">Descrição:</label>
+                    <textarea id="productDescription" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="productImage">Imagem do Produto:</label>
+                    <input type="file" id="productImage" accept="image/*">
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelBtn" class="cancel-btn">Cancelar</button>
+                    <button type="submit" class="save-btn">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar Exclusão -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h2>Confirmar Exclusão</h2>
+            <p>Tem certeza que deseja excluir este produto?</p>
+            <div class="form-actions">
+                <button id="cancelDeleteBtn" class="cancel-btn">Cancelar</button>
+                <button id="confirmDeleteBtn" class="delete-btn">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="admin-script.js"></script>
+</body>
+</html>

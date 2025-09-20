@@ -1,0 +1,27 @@
+{
+  "name": "FRY - Sushi Delivery",
+  "short_name": "FRY Sushi",
+  "description": "O MELHOR DE GOIÂNIA E APARECIDA! Big Hots crocantes, Sushi Dog inovador e sushi premium. Entrega grátis em Goiânia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ff6b6b",
+  "theme_color": "#ff6b6b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "lifestyle", "shopping"],
+  "lang": "pt-BR",
+  "dir": "ltr"
+}

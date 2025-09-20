@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - FRY Sushi Delivery</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .info { background-color: #e3f2fd; border-color: #2196f3; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <h1>🔧 Debug - FRY Sushi Delivery</h1>
+    
+    <div class="debug-section info">
+        <h3>📊 Status da Conexão</h3>
+        <p id="connectionStatus">Verificando...</p>
+        <button onclick="testConnection()">Testar Conexão</button>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>🔥 Firebase Config</h3>
+        <pre id="firebaseConfig">Carregando...</pre>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>📝 Dados do Cardápio</h3>
+        <button onclick="loadMenuData()">Carregar Dados</button>
+        <button onclick="clearMenuData()">Limpar Dados</button>
+        <pre id="menuData">Nenhum dado carregado</pre>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>🧪 Teste de Salvamento</h3>
+        <button onclick="testSave()">Testar Salvamento</button>
+        <p id="saveResult">Clique em "Testar Salvamento" para ver o resultado</p>
+    </div>
+    
+    <div class="debug-section info">
+        <h3>🔍 Logs de Erro</h3>
+        <button onclick="clearLogs()">Limpar Logs</button>
+        <pre id="errorLogs">Nenhum erro registrado</pre>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let errorLogs = [];
+        
+        // Capturar erros
+        window.addEventListener('error', function(e) {
+            errorLogs.push({
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                timestamp: new Date().toISOString()
+            });
+            updateErrorLogs();
+        });
+        
+        // Capturar erros não tratados
+        window.addEventListener('unhandledrejection', function(e) {
+            errorLogs.push({
+                message: 'Unhandled Promise Rejection: ' + e.reason,
+                timestamp: new Date().toISOString()
+            });
+            updateErrorLogs();
+        });
+        
+        function updateErrorLogs() {
+            document.getElementById('errorLogs').textContent = JSON.stringify(errorLogs, null, 2);
+        }
+        
+        function clearLogs() {
+            errorLogs = [];
+            updateErrorLogs();
+        }
+        
+        function testConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = 'Testando...';
+            
+            try {
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    statusEl.textContent = '✅ Firebase conectado com sucesso!';
+                    statusEl.parentElement.className = 'debug-section success';
+                } else {
+                    statusEl.textContent = '❌ Firebase não inicializado';
+                    statusEl.parentElement.className = 'debug-section error';
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Erro: ' + error.message;
+                statusEl.parentElement.className = 'debug-section error';
+            }
+        }
+        
+        function loadMenuData() {
+            const menuDataEl = document.getElementById('menuData');
+            menuDataEl.textContent = 'Carregando...';
+            
+            db.collection('cardapio').doc('menu').get()
+                .then(doc => {
+                    if (doc.exists) {
+                        menuDataEl.textContent = JSON.stringify(doc.data(), null, 2);
+                    } else {
+                        menuDataEl.textContent = 'Nenhum documento encontrado';
+                    }
+                })
+                .catch(error => {
+                    menuDataEl.textContent = 'Erro: ' + error.message;
+                    console.error('Erro ao carregar dados:', error);
+                });
+        }
+        
+        function clearMenuData() {
+            const menuDataEl = document.getElementById('menuData');
+            menuDataEl.textContent = 'Nenhum dado carregado';
+        }
+        
+        async function testSave() {
+            const resultEl = document.getElementById('saveResult');
+            resultEl.textContent = 'Testando salvamento...';
+            
+            try {
+                const testData = {
+                    bigHots: [],
+                    sushiDog: [],
+                    combos: [],
+                    bebidas: [],
+                    adicionais: []
+                };
+                
+                await db.collection('cardapio').doc('menu').set(testData);
+                resultEl.textContent = '✅ Salvamento testado com sucesso!';
+                resultEl.parentElement.className = 'debug-section success';
+            } catch (error) {
+                resultEl.textContent = '❌ Erro no salvamento: ' + error.message;
+                resultEl.parentElement.className = 'debug-section error';
+                console.error('Erro no teste de salvamento:', error);
+            }
+        }
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mostrar configuração do Firebase
+            document.getElementById('firebaseConfig').textContent = JSON.stringify(firebaseConfig, null, 2);
+            
+            // Testar conexão automaticamente
+            testConnection();
+        });
+    </script>
+</body>
+</html>
