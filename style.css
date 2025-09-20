@@ -480,6 +480,28 @@ body {
 .modal-content.large {
     max-width: 600px;
     width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Checkout Modal específico */
+#checkoutModal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 5% auto;
+}
+
+/* Form Actions - botões de ação */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 1rem 0;
+    border-top: 1px solid #e9ecef;
 }
 
 /* Carrinho */
@@ -634,10 +656,19 @@ body {
     font-weight: bold;
     font-size: 1.1rem;
     transition: background 0.3s;
+    min-width: 200px;
+    position: relative;
+    z-index: 10;
 }
 
 .send-whatsapp-btn:hover {
     background: #128c7e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.send-whatsapp-btn:active {
+    transform: translateY(0);
 }
 
 .back-btn {
@@ -878,10 +909,31 @@ body {
     .form-actions {
         flex-direction: column;
         gap: 0.5rem;
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 1rem 0;
+        border-top: 1px solid #e9ecef;
+        margin: 1rem -1.5rem -2rem -1.5rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
     }
     
     .back-btn, .send-whatsapp-btn {
         width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
+    .send-whatsapp-btn {
+        order: 2;
+        background: #25d366;
+        font-weight: bold;
+    }
+    
+    .back-btn {
+        order: 1;
+        background: #95a5a6;
     }
 }
 
@@ -1000,6 +1052,17 @@ body {
     .login-btn {
         padding: 0.8rem;
         font-size: 1rem;
+    }
+    
+    .form-actions {
+        margin: 1rem -1rem -1rem -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .back-btn, .send-whatsapp-btn {
+        padding: 0.9rem;
+        font-size: 0.9rem;
     }
 }
 
