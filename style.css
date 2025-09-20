@@ -41,6 +41,13 @@ body {
     font-weight: bold;
 }
 
+.logo-img {
+    height: 50px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+}
+
 .nav {
     display: flex;
     gap: 2rem;
@@ -768,6 +775,11 @@ body {
         font-size: 1.5rem;
     }
     
+    .logo-img {
+        height: 40px;
+        max-width: 150px;
+    }
+    
     .nav {
         gap: 0.5rem;
         flex-wrap: wrap;
@@ -948,6 +960,11 @@ body {
     
     .logo h1 {
         font-size: 1.3rem;
+    }
+    
+    .logo-img {
+        height: 35px;
+        max-width: 120px;
     }
     
     .nav {
