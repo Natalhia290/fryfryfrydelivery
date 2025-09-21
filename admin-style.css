@@ -72,11 +72,15 @@
 
 /* Tab Content */
 .tab-content {
-    display: none;
+    display: none !important;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 0 0 10px 10px;
+    min-height: 400px;
 }
 
 .tab-content.active {
-    display: block;
+    display: block !important;
 }
 
 /* Admin Section */
@@ -394,22 +398,28 @@
 }
 
 .pedidos-list {
-    display: grid;
+    display: block !important;
     gap: 1rem;
     min-height: 200px;
     width: 100%;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .pedido-card {
-    background: white;
+    background: white !important;
     border: 2px solid #e9ecef;
     border-radius: 12px;
     padding: 1.5rem;
     transition: all 0.3s;
-    display: block;
-    width: 100%;
+    display: block !important;
+    width: 100% !important;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 1;
 }
 
 .pedido-card:hover {
@@ -568,6 +578,15 @@
     background: #229954;
 }
 
+.status-btn.excluir {
+    background: #e74c3c;
+    color: white;
+}
+
+.status-btn.excluir:hover {
+    background: #c0392b;
+}
+
 .pedido-timestamp {
     font-size: 0.8rem;
     color: #999;
@@ -578,6 +597,114 @@
     text-align: center;
     padding: 3rem;
     color: #666;
+}
+
+/* Seção de Relatórios de Vendas */
+.sales-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.sales-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.sales-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.sales-card.today {
+    border-color: #27ae60;
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white;
+}
+
+.sales-card.week {
+    border-color: #3498db;
+    background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+    color: white;
+}
+
+.sales-card.month {
+    border-color: #9b59b6;
+    background: linear-gradient(135deg, #9b59b6 0%, #bb8fce 100%);
+    color: white;
+}
+
+.sales-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sales-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.sales-date {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+}
+
+.sales-amount {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sales-orders {
+    font-size: 1rem;
+    opacity: 0.9;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.sales-status {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    font-style: italic;
+}
+
+/* Seção de Pedidos no Cardápio */
+.pedidos-list {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    background: #f8f9fa;
+}
+
+.pedidos-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.pedidos-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.pedidos-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.pedidos-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 /* Responsive para pedidos */
@@ -598,6 +725,23 @@
     
     .pedido-actions {
         justify-content: center;
+    }
+    
+    .pedidos-list {
+        max-height: 400px;
+    }
+    
+    .sales-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .sales-card {
+        padding: 1rem;
+    }
+    
+    .sales-amount {
+        font-size: 2rem;
     }
 }
 

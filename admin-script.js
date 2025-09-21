@@ -42,6 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('📋 Carregando pedidos...');
         loadOrders();
         
+        // Carregar vendas
+        console.log('💰 Carregando vendas...');
+        calculateSales();
+        
         // Forçar renderização após 2 segundos
         setTimeout(() => {
             console.log('🔄 Forçando renderização inicial...');
@@ -74,6 +78,281 @@ document.addEventListener('DOMContentLoaded', function() {
     window.forceRenderOrders = function() {
         console.log('🔄 Forçando renderização de pedidos...');
         renderOrders();
+    };
+    
+    // Função para criar um pedido de teste
+    window.createTestOrder = async function() {
+        try {
+            console.log('🧪 Criando pedido de teste...');
+            const testOrder = {
+                customerName: 'Cliente Teste',
+                customerPhone: '(62) 99999-9999',
+                customerAddress: 'Rua Teste, 123 - Goiânia/GO',
+                notes: 'Pedido de teste para verificar funcionamento',
+                items: [
+                    {
+                        name: 'Big Hot Teste',
+                        emoji: '🍣',
+                        price: 15.90,
+                        quantity: 2
+                    }
+                ],
+                total: 31.80,
+                status: 'Novo',
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            const docRef = await db.collection('pedidos').add(testOrder);
+            console.log('✅ Pedido de teste criado com ID:', docRef.id);
+            alert('Pedido de teste criado! Verifique se aparece na lista.');
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar pedido de teste:', error);
+            alert('Erro ao criar pedido de teste: ' + error.message);
+        }
+    };
+    
+    // Função para debug visual
+    window.debugVisual = function() {
+        const pedidosList = document.getElementById('pedidosList');
+        if (pedidosList) {
+            console.log('🔍 Debug Visual - pedidosList:');
+            console.log('- display:', pedidosList.style.display);
+            console.log('- visibility:', pedidosList.style.visibility);
+            console.log('- opacity:', pedidosList.style.opacity);
+            console.log('- height:', pedidosList.offsetHeight);
+            console.log('- width:', pedidosList.offsetWidth);
+            console.log('- innerHTML length:', pedidosList.innerHTML.length);
+            
+            const cards = pedidosList.querySelectorAll('.pedido-card');
+            console.log('🔍 Cards encontrados:', cards.length);
+            cards.forEach((card, index) => {
+                console.log(`Card ${index}:`, {
+                    display: card.style.display,
+                    visibility: card.style.visibility,
+                    opacity: card.style.opacity,
+                    height: card.offsetHeight,
+                    width: card.offsetWidth
+                });
+            });
+        }
+    };
+    
+    // Função de emergência para forçar exibição
+    window.forceShowOrders = function() {
+        console.log('🚨 FORÇANDO EXIBIÇÃO DOS PEDIDOS...');
+        
+        const pedidosList = document.getElementById('pedidosList');
+        const pedidosListCardapio = document.getElementById('pedidosListCardapio');
+        
+        if (!pedidosList) {
+            console.error('❌ pedidosList não encontrado!');
+            return;
+        }
+        
+        // Criar HTML simples e direto
+        const simpleHTML = orders.map(order => `
+            <div style="
+                background: white;
+                border: 2px solid #e9ecef;
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                display: block;
+                visibility: visible;
+                opacity: 1;
+                position: relative;
+                z-index: 1000;
+                width: 100%;
+                min-height: 100px;
+            ">
+                <h3>Pedido #${order.id}</h3>
+                <p><strong>Cliente:</strong> ${order.customerName}</p>
+                <p><strong>Telefone:</strong> ${order.customerPhone}</p>
+                <p><strong>Endereço:</strong> ${order.customerAddress}</p>
+                <p><strong>Total:</strong> R$ ${order.total.toFixed(2).replace('.', ',')}</p>
+                <p><strong>Status:</strong> ${order.status}</p>
+            </div>
+        `).join('');
+        
+        // Aplicar em ambas as seções
+        const sections = [pedidosList, pedidosListCardapio].filter(Boolean);
+        sections.forEach((section, index) => {
+            section.innerHTML = simpleHTML;
+            section.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                background: #f8f9fa !important;
+                padding: 1rem !important;
+                min-height: 200px !important;
+                position: relative !important;
+                z-index: 999 !important;
+            `;
+            console.log(`✅ HTML simples inserido na seção ${index + 1}!`);
+        });
+        
+        console.log('📊 Total de pedidos:', orders.length);
+    };
+    
+    // Função para testar as abas
+    window.testTabs = function() {
+        console.log('🧪 TESTANDO ABAS...');
+        
+        const menuTab = document.getElementById('menuTab');
+        const pedidosTab = document.getElementById('pedidosTab');
+        const cardapioContent = document.getElementById('cardapioTab');
+        const pedidosContent = document.getElementById('pedidosTab');
+        
+        console.log('📋 Elementos encontrados:');
+        console.log('- menuTab:', menuTab);
+        console.log('- pedidosTab:', pedidosTab);
+        console.log('- cardapioContent:', cardapioContent);
+        console.log('- pedidosContent:', pedidosContent);
+        
+        console.log('🔄 Testando clique na aba Pedidos...');
+        if (pedidosTab) {
+            pedidosTab.click();
+        }
+        
+        setTimeout(() => {
+            console.log('📊 Estado após clique:');
+            console.log('- pedidosContent.classList:', pedidosContent?.classList.toString());
+            console.log('- pedidosContent.style.display:', pedidosContent?.style.display);
+            console.log('- pedidosContent.offsetHeight:', pedidosContent?.offsetHeight);
+        }, 100);
+    };
+    
+    // Função para calcular vendas
+    window.calculateSales = async function() {
+        try {
+            console.log('💰 Calculando vendas...');
+            
+            const now = new Date();
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            // Buscar TODOS os pedidos e filtrar no JavaScript (evita erro de índice)
+            console.log('📋 Buscando todos os pedidos...');
+            const allOrders = await db.collection('pedidos').get();
+            
+            console.log('📊 Total de pedidos encontrados:', allOrders.size);
+            
+            // Filtrar pedidos entregues por período
+            const todayOrders = allOrders.docs.filter(doc => {
+                const data = doc.data();
+                const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                return data.status === 'Entregue' && timestamp >= today;
+            });
+            
+            const weekOrders = allOrders.docs.filter(doc => {
+                const data = doc.data();
+                const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                return data.status === 'Entregue' && timestamp >= weekStart;
+            });
+            
+            const monthOrders = allOrders.docs.filter(doc => {
+                const data = doc.data();
+                const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                return data.status === 'Entregue' && timestamp >= monthStart;
+            });
+            
+            // Calcular totais
+            const todayTotal = todayOrders.reduce((sum, doc) => sum + (doc.data().total || 0), 0);
+            const weekTotal = weekOrders.reduce((sum, doc) => sum + (doc.data().total || 0), 0);
+            const monthTotal = monthOrders.reduce((sum, doc) => sum + (doc.data().total || 0), 0);
+            
+            console.log('📊 Pedidos entregues - Hoje:', todayOrders.length, '| Semana:', weekOrders.length, '| Mês:', monthOrders.length);
+            
+            // Atualizar interface
+            document.getElementById('salesToday').textContent = `R$ ${todayTotal.toFixed(2).replace('.', ',')}`;
+            document.getElementById('ordersToday').textContent = `${todayOrders.length} pedidos`;
+            document.getElementById('statusToday').textContent = todayOrders.length > 0 ? '✅ Vendas confirmadas' : '⏳ Aguardando vendas';
+            
+            document.getElementById('salesWeek').textContent = `R$ ${weekTotal.toFixed(2).replace('.', ',')}`;
+            document.getElementById('ordersWeek').textContent = `${weekOrders.length} pedidos`;
+            document.getElementById('statusWeek').textContent = weekOrders.length > 0 ? '📈 Crescimento semanal' : '📊 Sem vendas ainda';
+            
+            document.getElementById('salesMonth').textContent = `R$ ${monthTotal.toFixed(2).replace('.', ',')}`;
+            document.getElementById('ordersMonth').textContent = `${monthOrders.length} pedidos`;
+            document.getElementById('statusMonth').textContent = monthOrders.length > 0 ? '🎯 Meta mensal' : '📅 Início do mês';
+            
+            // Atualizar datas
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('pt-BR');
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            document.getElementById('weekDate').textContent = `${weekStart.toLocaleDateString('pt-BR')} - ${weekEnd.toLocaleDateString('pt-BR')}`;
+            
+            document.getElementById('monthDate').textContent = monthStart.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            
+            console.log('✅ Vendas calculadas com sucesso!');
+            console.log('💰 Valores - Hoje:', todayTotal, '| Semana:', weekTotal, '| Mês:', monthTotal);
+            
+        } catch (error) {
+            console.error('❌ Erro ao calcular vendas:', error);
+            showNotification('Erro ao calcular vendas: ' + error.message, 'error');
+        }
+    };
+    
+    // Função para atualizar vendas
+    window.refreshSales = function() {
+        calculateSales();
+        showNotification('Vendas atualizadas!', 'success');
+    };
+    
+    // Função para limpar pedidos do dia
+    window.clearTodayOrders = async function() {
+        if (!confirm('⚠️ Tem certeza que deseja excluir TODOS os pedidos de hoje?\n\nEsta ação não pode ser desfeita!')) {
+            return;
+        }
+        
+        try {
+            console.log('🗑️ Limpando pedidos do dia...');
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Buscar pedidos de hoje
+            const allOrders = await db.collection('pedidos').get();
+            const todayOrders = allOrders.docs.filter(doc => {
+                const data = doc.data();
+                const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
+                return timestamp >= today && timestamp < tomorrow;
+            });
+            
+            if (todayOrders.length === 0) {
+                alert('✅ Nenhum pedido encontrado para hoje!');
+                return;
+            }
+            
+            // Deletar pedidos em lote
+            const batch = db.batch();
+            todayOrders.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            await batch.commit();
+            
+            console.log(`✅ ${todayOrders.length} pedidos do dia removidos!`);
+            alert(`✅ ${todayOrders.length} pedidos de hoje foram removidos com sucesso!`);
+            
+            // Recarregar pedidos e vendas
+            loadOrders();
+            calculateSales();
+            
+        } catch (error) {
+            console.error('❌ Erro ao limpar pedidos:', error);
+            alert('❌ Erro ao limpar pedidos: ' + error.message);
+        }
     };
 });
 
@@ -149,17 +428,33 @@ function setupEventListeners() {
 
 // Trocar tab
 function switchTab(tab) {
+    console.log('🔄 Trocando para tab:', tab);
+    
     // Atualizar botões
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
     if (tab === 'cardapio') {
+        console.log('📋 Ativando aba Cardápio');
         menuTabBtn.classList.add('active');
         cardapioTab.classList.add('active');
-    } else {
+        cardapioTab.style.display = 'block';
+        
+        // Carregar vendas quando trocar para a aba
+        console.log('💰 Carregando vendas...');
+        calculateSales();
+    } else if (tab === 'pedidos') {
+        console.log('📋 Ativando aba Pedidos');
         pedidosTabBtn.classList.add('active');
         pedidosTab.classList.add('active');
+        pedidosTab.style.display = 'block';
+        
+        // Carregar pedidos quando trocar para a aba
+        console.log('🔄 Carregando pedidos...');
+        loadOrders();
     }
+    
+    console.log('✅ Tab trocada com sucesso');
 }
 
 // Logout
@@ -522,20 +817,42 @@ function generateProductId() {
 async function loadOrders() {
     try {
         console.log('🔥 Iniciando carregamento de pedidos...');
+        console.log('🔥 Firebase config:', firebase.apps[0]?.options);
+        console.log('🔥 DB object:', db);
+        
+        if (!db) {
+            throw new Error('Firebase não inicializado');
+        }
+        
+        // Primeiro, tentar fazer uma consulta simples para verificar se há dados
+        console.log('🔍 Testando consulta simples...');
+        const testQuery = await db.collection('pedidos').limit(1).get();
+        console.log('📊 Teste de consulta:', testQuery.size, 'documentos encontrados');
         
         // Configurar listener em tempo real
         const unsubscribe = db.collection('pedidos').onSnapshot((snapshot) => {
             console.log('📋 Snapshot recebido:', snapshot.size, 'pedidos');
+            console.log('📋 Snapshot empty:', snapshot.empty);
+            console.log('📋 Snapshot docs:', snapshot.docs.length);
             
             const previousCount = orders.length;
             orders = [];
+            
+            if (snapshot.empty) {
+                console.log('⚠️ Nenhum pedido encontrado no Firebase');
+                renderOrders(); // Renderizar estado vazio
+                updateOrderStats();
+                return;
+            }
+            
             snapshot.forEach((doc) => {
                 const data = doc.data();
+                console.log('📄 Documento:', doc.id, data);
                 orders.push({
                     id: doc.id,
                     ...data
                 });
-                console.log('✅ Pedido carregado:', doc.id, data.customerName);
+                console.log('✅ Pedido carregado:', doc.id, data.customerName || 'Sem nome');
             });
             
             // Ordenar por timestamp se disponível
@@ -545,8 +862,11 @@ async function loadOrders() {
                 return timeB - timeA; // Mais recente primeiro
             });
             
+            console.log('📊 Total de pedidos carregados:', orders.length);
+            
             // Se há novos pedidos, tocar som e mostrar notificação
             if (orders.length > previousCount && previousCount > 0) {
+                console.log('🎉 Novos pedidos detectados!');
                 playNewOrderSound();
                 showNewOrderNotification(orders.length - previousCount);
             }
@@ -561,16 +881,19 @@ async function loadOrders() {
             
         }, (error) => {
             console.error('❌ Erro no listener de pedidos:', error);
-            document.getElementById('pedidosList').innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: #e74c3c;">
-                    <h3>❌ Erro ao carregar pedidos</h3>
-                    <p>Erro: ${error.message}</p>
-                    <p>Código: ${error.code}</p>
-                    <button onclick="loadOrders()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                        🔄 Tentar Novamente
-                    </button>
-                </div>
-            `;
+            const pedidosList = document.getElementById('pedidosList');
+            if (pedidosList) {
+                pedidosList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #e74c3c;">
+                        <h3>❌ Erro ao carregar pedidos</h3>
+                        <p>Erro: ${error.message}</p>
+                        <p>Código: ${error.code}</p>
+                        <button onclick="loadOrders()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            🔄 Tentar Novamente
+                        </button>
+                    </div>
+                `;
+            }
         });
         
         // Salvar função de unsubscribe para limpeza posterior
@@ -578,15 +901,18 @@ async function loadOrders() {
         
     } catch (error) {
         console.error('❌ Erro ao carregar pedidos:', error);
-        document.getElementById('pedidosList').innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: #e74c3c;">
-                <h3>❌ Erro de Conexão</h3>
-                <p>Erro: ${error.message}</p>
-                <button onclick="loadOrders()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                    🔄 Tentar Novamente
-                </button>
-            </div>
-        `;
+        const pedidosList = document.getElementById('pedidosList');
+        if (pedidosList) {
+            pedidosList.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #e74c3c;">
+                    <h3>❌ Erro de Conexão</h3>
+                    <p>Erro: ${error.message}</p>
+                    <button onclick="loadOrders()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🔄 Tentar Novamente
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -594,6 +920,7 @@ async function loadOrders() {
 function renderOrders() {
     console.log('🎨 Renderizando pedidos:', orders.length);
     const pedidosList = document.getElementById('pedidosList');
+    const pedidosListCardapio = document.getElementById('pedidosListCardapio');
     
     if (!pedidosList) {
         console.error('❌ Elemento pedidosList não encontrado!');
@@ -606,10 +933,13 @@ function renderOrders() {
     const pedidosTab = document.getElementById('pedidosTab');
     if (pedidosTab && !pedidosTab.classList.contains('active')) {
         console.log('⚠️ Aba de pedidos não está ativa, mas renderizando mesmo assim');
+        // Forçar a aba a ficar ativa
+        pedidosTab.classList.add('active');
+        pedidosTab.style.display = 'block';
     }
     
     if (orders.length === 0) {
-        pedidosList.innerHTML = `
+        const emptyState = `
             <div style="text-align: center; padding: 3rem; color: #666;">
                 <div style="font-size: 4rem; margin-bottom: 1rem;">🍣</div>
                 <h3>Nenhum pedido encontrado</h3>
@@ -619,6 +949,10 @@ function renderOrders() {
                 </p>
             </div>
         `;
+        pedidosList.innerHTML = emptyState;
+        if (pedidosListCardapio) {
+            pedidosListCardapio.innerHTML = emptyState;
+        }
         return;
     }
     
@@ -630,12 +964,16 @@ function renderOrders() {
     console.log('🔍 Pedidos filtrados:', filteredOrders.length);
     
     if (filteredOrders.length === 0) {
-        pedidosList.innerHTML = `
+        const noFilterState = `
             <div style="text-align: center; padding: 2rem; color: #666;">
                 <h3>Nenhum pedido com status "${currentOrderFilter}"</h3>
                 <p>Mude o filtro para ver outros pedidos.</p>
             </div>
         `;
+        pedidosList.innerHTML = noFilterState;
+        if (pedidosListCardapio) {
+            pedidosListCardapio.innerHTML = noFilterState;
+        }
         return;
     }
     
@@ -701,13 +1039,69 @@ function renderOrders() {
     }).join('');
     
     console.log('📝 HTML criado, inserindo no DOM...');
-    pedidosList.innerHTML = htmlContent;
     
-    // Forçar visibilidade com estilos inline
-    pedidosList.style.display = 'block';
-    pedidosList.style.visibility = 'visible';
-    pedidosList.style.opacity = '1';
-    pedidosList.style.minHeight = '200px';
+    // Função para renderizar em uma seção específica
+    function renderInSection(sectionElement, sectionName) {
+        if (!sectionElement) return;
+        
+        // Limpar completamente o conteúdo primeiro
+        sectionElement.innerHTML = '';
+        
+        // Inserir o HTML
+        sectionElement.innerHTML = htmlContent;
+        
+        // Forçar visibilidade com estilos inline mais agressivos
+        sectionElement.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: 200px !important;
+            position: relative !important;
+            z-index: 999 !important;
+            background: #f8f9fa !important;
+            padding: 1rem !important;
+            border-radius: 8px !important;
+        `;
+        
+        console.log(`✅ HTML inserido na seção ${sectionName}!`);
+    }
+    
+    // Renderizar em ambas as seções
+    renderInSection(pedidosList, 'Pedidos');
+    renderInSection(pedidosListCardapio, 'Cardápio');
+    
+    // Aguardar um pouco e forçar visibilidade de todos os cards
+    setTimeout(() => {
+        const allSections = [pedidosList, pedidosListCardapio].filter(Boolean);
+        
+        allSections.forEach((section, sectionIndex) => {
+            const pedidoCards = section.querySelectorAll('.pedido-card');
+            console.log(`🔍 Cards encontrados na seção ${sectionIndex + 1}:`, pedidoCards.length);
+            
+            pedidoCards.forEach((card, index) => {
+                card.style.cssText = `
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    position: relative !important;
+                    z-index: 1000 !important;
+                    background: white !important;
+                    border: 2px solid #e9ecef !important;
+                    border-radius: 12px !important;
+                    padding: 1.5rem !important;
+                    margin-bottom: 1rem !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                    width: 100% !important;
+                    min-height: 100px !important;
+                `;
+                console.log(`Card ${index} estilizado na seção ${sectionIndex + 1}`);
+            });
+            
+            // Forçar reflow
+            section.offsetHeight;
+        });
+        
+    }, 100);
     
     console.log('✅ HTML inserido no DOM com sucesso!');
     console.log('🔍 Conteúdo atual do pedidosList:', pedidosList.innerHTML.substring(0, 200) + '...');
@@ -733,6 +1127,9 @@ function getStatusButtons(currentStatus, orderId) {
         buttons.push(`<button class="status-btn entregue" onclick="updateOrderStatus('${orderId}', 'Entregue')">✅ Entregue</button>`);
     }
     
+    // Botão de excluir sempre disponível
+    buttons.push(`<button class="status-btn excluir" onclick="deleteOrder('${orderId}')">🗑️ Excluir</button>`);
+    
     return buttons.join('');
 }
 
@@ -747,19 +1144,79 @@ async function updateOrderStatus(orderId, newStatus) {
         // Mostrar notificação
         showNotification(`Status atualizado para: ${newStatus}`, 'success');
         
+        // Se o pedido foi marcado como entregue, recalcular vendas
+        if (newStatus === 'Entregue') {
+            console.log('💰 Pedido entregue! Recalculando vendas...');
+            calculateSales();
+        }
+        
     } catch (error) {
         console.error('Erro ao atualizar status:', error);
         showNotification('Erro ao atualizar status', 'error');
     }
 }
 
+// Excluir pedido
+async function deleteOrder(orderId) {
+    try {
+        // Confirmar exclusão
+        if (!confirm('⚠️ Tem certeza que deseja excluir este pedido?\n\nEsta ação não pode ser desfeita!')) {
+            return;
+        }
+        
+        console.log('🗑️ Excluindo pedido:', orderId);
+        
+        // Buscar dados do pedido antes de excluir
+        const orderDoc = await db.collection('pedidos').doc(orderId).get();
+        const orderData = orderDoc.data();
+        
+        // Excluir do Firebase
+        await db.collection('pedidos').doc(orderId).delete();
+        
+        // Remover da lista local
+        const orderIndex = orders.findIndex(order => order.id === orderId);
+        if (orderIndex !== -1) {
+            orders.splice(orderIndex, 1);
+        }
+        
+        // Recalcular vendas se o pedido era entregue
+        if (orderData && orderData.status === 'Entregue') {
+            console.log('💰 Pedido entregue excluído! Recalculando vendas...');
+            calculateSales();
+        }
+        
+        // Re-renderizar pedidos
+        renderOrders();
+        updateOrderStats();
+        
+        // Mostrar notificação
+        showNotification('Pedido excluído com sucesso!', 'success');
+        
+        console.log('✅ Pedido excluído com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir pedido:', error);
+        showNotification('Erro ao excluir pedido: ' + error.message, 'error');
+    }
+}
+
+// Função global para excluir pedido
+window.deleteOrder = deleteOrder;
+
 // Atualizar estatísticas dos pedidos
 function updateOrderStats() {
     const totalPedidos = document.getElementById('totalPedidos');
     const novosPedidos = document.getElementById('novosPedidos');
+    const totalPedidosCardapio = document.getElementById('totalPedidosCardapio');
+    const novosPedidosCardapio = document.getElementById('novosPedidosCardapio');
     
-    if (totalPedidos) totalPedidos.textContent = orders.length;
-    if (novosPedidos) novosPedidos.textContent = orders.filter(order => order.status === 'Novo').length;
+    const totalCount = orders.length;
+    const novosCount = orders.filter(order => order.status === 'Novo').length;
+    
+    if (totalPedidos) totalPedidos.textContent = totalCount;
+    if (novosPedidos) novosPedidos.textContent = novosCount;
+    if (totalPedidosCardapio) totalPedidosCardapio.textContent = totalCount;
+    if (novosPedidosCardapio) novosPedidosCardapio.textContent = novosCount;
 }
 
 // Mostrar notificação

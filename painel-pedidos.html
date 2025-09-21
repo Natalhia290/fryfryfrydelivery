@@ -52,6 +52,90 @@
                         <!-- Produtos serão carregados dinamicamente -->
                     </div>
                 </div>
+                
+                <!-- Seção de Relatórios de Vendas -->
+                <div class="admin-section" style="margin-top: 2rem;">
+                    <div class="section-header">
+                        <h2>💰 Relatórios de Vendas</h2>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="refreshSales()" style="background: #3498db; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                                🔄 Atualizar
+                            </button>
+                            <button onclick="clearTodayOrders()" style="background: #e67e22; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                                🗑️ Limpar Hoje
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="sales-grid">
+                        <div class="sales-card today">
+                            <div class="sales-header">
+                                <h3>📅 Hoje</h3>
+                                <span class="sales-date" id="todayDate">-</span>
+                            </div>
+                            <div class="sales-amount" id="salesToday">R$ 0,00</div>
+                            <div class="sales-orders" id="ordersToday">0 pedidos</div>
+                            <div class="sales-status" id="statusToday">-</div>
+                        </div>
+                        
+                        <div class="sales-card week">
+                            <div class="sales-header">
+                                <h3>📊 Esta Semana</h3>
+                                <span class="sales-date" id="weekDate">-</span>
+                            </div>
+                            <div class="sales-amount" id="salesWeek">R$ 0,00</div>
+                            <div class="sales-orders" id="ordersWeek">0 pedidos</div>
+                            <div class="sales-status" id="statusWeek">-</div>
+                        </div>
+                        
+                        <div class="sales-card month">
+                            <div class="sales-header">
+                                <h3>📈 Este Mês</h3>
+                                <span class="sales-date" id="monthDate">-</span>
+                            </div>
+                            <div class="sales-amount" id="salesMonth">R$ 0,00</div>
+                            <div class="sales-orders" id="ordersMonth">0 pedidos</div>
+                            <div class="sales-status" id="statusMonth">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção de Pedidos na Aba Cardápio -->
+                <div class="admin-section" style="margin-top: 2rem;">
+                    <div class="section-header">
+                        <h2>📋 Pedidos Recentes</h2>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div class="pedidos-stats">
+                                <span class="stat-item">Total: <span id="totalPedidosCardapio">0</span></span>
+                                <span class="stat-item">Novos: <span id="novosPedidosCardapio">0</span></span>
+                            </div>
+                            <button onclick="createTestOrder()" style="background: #27ae60; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem; margin-right: 0.5rem;">
+                                🧪 Criar Pedido Teste
+                            </button>
+                            <button onclick="forceShowOrders()" style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                                🚨 Forçar Exibição
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros de Status -->
+                    <div class="pedidos-filtros">
+                        <button class="pedido-filtro-btn active" data-status="todos">Todos</button>
+                        <button class="pedido-filtro-btn" data-status="Novo">Novos</button>
+                        <button class="pedido-filtro-btn" data-status="Confirmado">Confirmados</button>
+                        <button class="pedido-filtro-btn" data-status="Preparando">Preparando</button>
+                        <button class="pedido-filtro-btn" data-status="Saiu para entrega">Saiu para entrega</button>
+                        <button class="pedido-filtro-btn" data-status="Entregue">Entregues</button>
+                    </div>
+                    
+                    <!-- Lista de Pedidos -->
+                    <div id="pedidosListCardapio" class="pedidos-list">
+                        <div class="loading-pedidos">
+                            <div class="spinner"></div>
+                            <p>Carregando pedidos...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Tab Pedidos -->
@@ -59,9 +143,20 @@
                 <div class="admin-section">
                     <div class="section-header">
                         <h2>📋 Pedidos em Tempo Real</h2>
-                        <div class="pedidos-stats">
-                            <span class="stat-item">Total: <span id="totalPedidos">0</span></span>
-                            <span class="stat-item">Novos: <span id="novosPedidos">0</span></span>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div class="pedidos-stats">
+                                <span class="stat-item">Total: <span id="totalPedidos">0</span></span>
+                                <span class="stat-item">Novos: <span id="novosPedidos">0</span></span>
+                            </div>
+                            <button onclick="createTestOrder()" style="background: #27ae60; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem; margin-right: 0.5rem;">
+                                🧪 Criar Pedido Teste
+                            </button>
+                            <button onclick="forceShowOrders()" style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem; margin-right: 0.5rem;">
+                                🚨 Forçar Exibição
+                            </button>
+                            <button onclick="testTabs()" style="background: #9b59b6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                                🧪 Testar Abas
+                            </button>
                         </div>
                     </div>
                     
