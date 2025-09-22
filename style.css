@@ -1793,35 +1793,68 @@ body::after {
         height: 180px;
     }
     
+    .loja-fechada-card {
+        padding: 1rem;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+    
     .loja-fechada-content {
-        padding: 2rem;
-        margin: 1rem;
+        padding: 1.5rem;
+        margin: 0.5rem;
+        max-width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     
     .loja-fechada-content h3 {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        margin-bottom: 0.8rem;
     }
     
     .loja-fechada-content p {
-        font-size: 1rem;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .loja-fechada-icon {
+        font-size: 3rem;
+        margin-bottom: 0.8rem;
     }
     
     .horario-funcionamento {
-        padding: 1.5rem;
+        padding: 1rem;
+        margin: 1rem 0;
     }
     
     .horario-funcionamento h4 {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
     }
     
     .horario-item {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.3rem;
         text-align: center;
+        padding: 0.8rem;
     }
     
     .dias, .horas {
+        font-size: 0.9rem;
+    }
+    
+    .loja-fechada-note {
+        font-size: 0.85rem;
+        margin: 1rem 0;
+        padding: 0.8rem;
+    }
+    
+    .fechar-card-btn {
+        padding: 0.8rem 1.5rem;
         font-size: 1rem;
+        margin-top: 1rem;
+        width: 100%;
+        max-width: 200px;
     }
     
     .header .container {
@@ -2071,8 +2104,130 @@ body::after {
         height: 120px;
     }
     
+    .loja-fechada-card {
+        padding: 0.5rem;
+        align-items: flex-start;
+    }
+    
+    .loja-fechada-content {
+        padding: 1rem;
+        margin: 0.25rem;
+        max-width: 98%;
+        max-height: 95vh;
+    }
+    
+    .loja-fechada-content h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loja-fechada-content p {
+        font-size: 0.8rem;
+        margin-bottom: 1rem;
+    }
+    
+    .loja-fechada-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .horario-funcionamento {
+        padding: 0.8rem;
+        margin: 0.8rem 0;
+    }
+    
+    .horario-funcionamento h4 {
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+    }
+    
+    .horario-item {
+        padding: 0.6rem;
+        gap: 0.2rem;
+    }
+    
+    .dias, .horas {
+        font-size: 0.8rem;
+    }
+    
+    .loja-fechada-note {
+        font-size: 0.75rem;
+        margin: 0.8rem 0;
+        padding: 0.6rem;
+    }
+    
+    .fechar-card-btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.9rem;
+        margin-top: 0.8rem;
+        width: 100%;
+        max-width: 180px;
+    }
+    
     .container {
         padding: 0 10px;
+    }
+}
+
+/* Dispositivos muito pequenos */
+@media (max-width: 360px) {
+    .loja-fechada-card {
+        padding: 0.25rem;
+    }
+    
+    .loja-fechada-content {
+        padding: 0.8rem;
+        margin: 0.1rem;
+        max-width: 99%;
+        max-height: 98vh;
+    }
+    
+    .loja-fechada-content h3 {
+        font-size: 1.3rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .loja-fechada-content p {
+        font-size: 0.75rem;
+        margin-bottom: 0.8rem;
+    }
+    
+    .loja-fechada-icon {
+        font-size: 2rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .horario-funcionamento {
+        padding: 0.6rem;
+        margin: 0.6rem 0;
+    }
+    
+    .horario-funcionamento h4 {
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+    }
+    
+    .horario-item {
+        padding: 0.5rem;
+        gap: 0.1rem;
+    }
+    
+    .dias, .horas {
+        font-size: 0.75rem;
+    }
+    
+    .loja-fechada-note {
+        font-size: 0.7rem;
+        margin: 0.6rem 0;
+        padding: 0.5rem;
+    }
+    
+    .fechar-card-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        margin-top: 0.6rem;
+        width: 100%;
+        max-width: 160px;
     }
     
     .header {
