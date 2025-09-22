@@ -277,8 +277,19 @@
 
                 <div class="form-group">
                     <label for="productImage">Imagem do Produto:</label>
-                    <input type="file" id="productImage" accept="image/*">
-                    <div id="imagePreview" class="image-preview"></div>
+                    
+                    <!-- Área de Upload -->
+                    <div id="imageUploadArea" class="image-upload-area">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Clique para adicionar imagem</div>
+                        <div class="upload-subtext">ou arraste uma imagem aqui</div>
+                        <input type="file" id="productImage" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <!-- Preview da Imagem -->
+                    <div id="imagePreview" class="image-preview">
+                        <div class="no-image">Nenhuma imagem selecionada</div>
+                    </div>
                 </div>
 
                 <div class="form-actions">

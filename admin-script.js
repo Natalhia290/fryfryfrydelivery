@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🎟️ Carregando códigos de desconto...');
         loadCodigosDesconto();
         
+        // Inicializar sistema de upload de imagens
+        console.log('📷 Inicializando sistema de upload...');
+        initializeImageUpload();
+        
         // Forçar renderização após 2 segundos
         setTimeout(() => {
             console.log('🔄 Forçando renderização inicial...');
@@ -950,10 +954,168 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// ==================== SISTEMA DE UPLOAD DE IMAGENS ====================
+
+// Inicializar funcionalidades de upload de imagem
+function initializeImageUpload() {
+    console.log('📷 Inicializando sistema de upload de imagens...');
+    
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const productImageInput = document.getElementById('productImage');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (!imageUploadArea || !productImageInput || !imagePreview) {
+        console.log('⚠️ Elementos de upload não encontrados, aguardando...');
+        setTimeout(initializeImageUpload, 1000);
+        return;
+    }
+    
+    // Clique na área de upload
+    imageUploadArea.addEventListener('click', () => {
+        productImageInput.click();
+    });
+    
+    // Drag and drop
+    imageUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        imageUploadArea.classList.add('dragover');
+    });
+    
+    imageUploadArea.addEventListener('dragleave', () => {
+        imageUploadArea.classList.remove('dragover');
+    });
+    
+    imageUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        imageUploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleImageFile(files[0]);
+        }
+    });
+    
+    // Mudança no input de arquivo
+    productImageInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleImageFile(e.target.files[0]);
+        }
+    });
+    
+    console.log('✅ Sistema de upload de imagens inicializado!');
+}
+
+// Processar arquivo de imagem
+function handleImageFile(file) {
+    console.log('📷 Processando arquivo de imagem:', file.name);
+    
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+        showNotification('Por favor, selecione apenas arquivos de imagem!', 'error');
+        return;
+    }
+    
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('A imagem deve ter no máximo 5MB!', 'error');
+        return;
+    }
+    
+    // Converter para Base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        displayImagePreview(e.target.result, file.name, file.size);
+    };
+    reader.readAsDataURL(file);
+}
+
+// Exibir preview da imagem
+function displayImagePreview(imageData, fileName, fileSize) {
+    const imagePreview = document.getElementById('imagePreview');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    
+    // Esconder área de upload
+    imageUploadArea.style.display = 'none';
+    
+    // Mostrar preview
+    imagePreview.innerHTML = `
+        <img src="${imageData}" alt="Preview da imagem">
+        <div class="image-info">
+            📷 ${fileName} (${formatFileSize(fileSize)})
+        </div>
+        <div class="image-actions">
+            <button type="button" class="btn-change-image" onclick="changeImage()">
+                🔄 Trocar Imagem
+            </button>
+            <button type="button" class="btn-remove-image" onclick="removeImage()">
+                🗑️ Remover
+            </button>
+        </div>
+    `;
+    
+    console.log('✅ Preview da imagem exibido!');
+}
+
+// Trocar imagem
+function changeImage() {
+    const productImageInput = document.getElementById('productImage');
+    productImageInput.click();
+}
+
+// Remover imagem
+function removeImage() {
+    const imagePreview = document.getElementById('imagePreview');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const productImageInput = document.getElementById('productImage');
+    
+    // Limpar input
+    productImageInput.value = '';
+    
+    // Mostrar área de upload
+    imageUploadArea.style.display = 'block';
+    
+    // Mostrar mensagem de nenhuma imagem
+    imagePreview.innerHTML = '<div class="no-image">Nenhuma imagem selecionada</div>';
+    
+    console.log('🗑️ Imagem removida!');
+}
+
+// Formatar tamanho do arquivo
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Obter dados da imagem para salvar
+function getImageData() {
+    const productImageInput = document.getElementById('productImage');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (productImageInput.files.length > 0) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                resolve(e.target.result);
+            };
+            reader.readAsDataURL(productImageInput.files[0]);
+        });
+    } else if (imagePreview.querySelector('img')) {
+        // Se há uma imagem no preview mas não no input (caso de edição)
+        return imagePreview.querySelector('img').src;
+    }
+    
+    return null;
+}
+
 // Funções globais
 window.openDescontoModal = openDescontoModal;
 window.editCodigo = editCodigo;
 window.duplicarCodigo = duplicarCodigo;
+window.changeImage = changeImage;
+window.removeImage = removeImage;
 window.deleteCodigo = deleteCodigo;
 window.loadCodigosDesconto = loadCodigosDesconto;
 window.criarCodigoTeste = criarCodigoTeste;
@@ -1193,21 +1355,61 @@ function openProductModal(productId = null) {
             
             // Mostrar preview da imagem
             const imagePreview = document.getElementById('imagePreview');
+            const imageUploadArea = document.getElementById('imageUploadArea');
+            
             if (produto.image) {
-                imagePreview.innerHTML = `<img src="${produto.image}" alt="Imagem atual">`;
+                // Esconder área de upload e mostrar preview
+                imageUploadArea.style.display = 'none';
+                imagePreview.innerHTML = `
+                    <img src="${produto.image}" alt="Imagem atual">
+                    <div class="image-info">
+                        📷 Imagem atual do produto
+                    </div>
+                    <div class="image-actions">
+                        <button type="button" class="btn-change-image" onclick="changeImage()">
+                            🔄 Trocar Imagem
+                        </button>
+                        <button type="button" class="btn-remove-image" onclick="removeImage()">
+                            🗑️ Remover
+                        </button>
+                    </div>
+                `;
             } else {
                 const imageData = localStorage.getItem(`product_image_${productId}`);
                 if (imageData) {
-                    imagePreview.innerHTML = `<img src="${imageData}" alt="Imagem atual">`;
+                    // Esconder área de upload e mostrar preview
+                    imageUploadArea.style.display = 'none';
+                    imagePreview.innerHTML = `
+                        <img src="${imageData}" alt="Imagem atual">
+                        <div class="image-info">
+                            📷 Imagem atual do produto
+                        </div>
+                        <div class="image-actions">
+                            <button type="button" class="btn-change-image" onclick="changeImage()">
+                                🔄 Trocar Imagem
+                            </button>
+                            <button type="button" class="btn-remove-image" onclick="removeImage()">
+                                🗑️ Remover
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    imagePreview.innerHTML = '<p>Nenhuma imagem</p>';
+                    // Mostrar área de upload e mensagem de nenhuma imagem
+                    imageUploadArea.style.display = 'block';
+                    imagePreview.innerHTML = '<div class="no-image">Nenhuma imagem selecionada</div>';
                 }
             }
         }
     } else {
         modalTitle.textContent = 'Adicionar Produto';
         productForm.reset();
-        document.getElementById('imagePreview').innerHTML = '';
+        
+        // Resetar interface de imagem
+        const imagePreview = document.getElementById('imagePreview');
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        
+        imageUploadArea.style.display = 'block';
+        imagePreview.innerHTML = '<div class="no-image">Nenhuma imagem selecionada</div>';
     }
     
     productModal.style.display = 'block';
@@ -1297,11 +1499,10 @@ async function handleProductSubmit(e) {
     const price = parseFloat(document.getElementById('productPrice').value);
     const emoji = document.getElementById('productEmoji').value || '🍣';
     const description = document.getElementById('productDescription').value;
-    const imageFile = document.getElementById('productImage').files[0];
     
     // Validar campos obrigatórios
     if (!name || !category || !price || !description) {
-        alert('Por favor, preencha todos os campos obrigatórios!');
+        showNotification('Por favor, preencha todos os campos obrigatórios!', 'error');
         return;
     }
     
@@ -1312,6 +1513,11 @@ async function handleProductSubmit(e) {
     saveBtn.textContent = 'Salvando...';
     
     try {
+        // Obter dados da imagem
+        console.log('📷 Obtendo dados da imagem...');
+        const imageData = await getImageData();
+        console.log('📷 Dados da imagem obtidos:', imageData ? 'Sim' : 'Não');
+        
         let productId;
         
         if (editingProductId) {
@@ -1344,26 +1550,24 @@ async function handleProductSubmit(e) {
         }
         
         // Processar imagem se houver
-        if (imageFile) {
-            await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        // Salvar imagem no produto
-                        const produto = findProductById(productId);
-                        if (produto) {
-                            produto.image = e.target.result;
-                        }
-                        // Também salvar no localStorage como backup
-                        localStorage.setItem(`product_image_${productId}`, e.target.result);
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(imageFile);
-            });
+        if (imageData) {
+            console.log('📷 Salvando imagem no produto...');
+            try {
+                // Salvar imagem no produto
+                const produto = findProductById(productId);
+                if (produto) {
+                    produto.image = imageData;
+                    console.log('✅ Imagem salva no produto!');
+                }
+                // Também salvar no localStorage como backup
+                localStorage.setItem(`product_image_${productId}`, imageData);
+                console.log('✅ Imagem salva no localStorage!');
+            } catch (error) {
+                console.error('❌ Erro ao salvar imagem:', error);
+                showNotification('Erro ao processar imagem: ' + error.message, 'error');
+            }
+        } else {
+            console.log('📷 Nenhuma imagem selecionada');
         }
         
         // Salvar no Firebase

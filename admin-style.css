@@ -295,13 +295,110 @@
 .image-preview {
     margin-top: 1rem;
     text-align: center;
+    padding: 1rem;
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+    background: #f9f9f9;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .image-preview img {
-    max-width: 200px;
-    max-height: 150px;
-    border-radius: 8px;
-    border: 2px solid #e9ecef;
+    max-width: 250px;
+    max-height: 250px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    margin-bottom: 1rem;
+}
+
+.image-preview .no-image {
+    color: #666;
+    font-style: italic;
+    font-size: 1.1rem;
+}
+
+.image-preview .image-info {
+    background: #e8f5e8;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    color: #2e7d32;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.image-upload-area {
+    border: 2px dashed #4caf50;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8fff8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.image-upload-area:hover {
+    border-color: #2e7d32;
+    background: #f0f8f0;
+}
+
+.image-upload-area.dragover {
+    border-color: #2e7d32;
+    background: #e8f5e8;
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: #4caf50;
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.image-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.image-actions button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-remove-image {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-remove-image:hover {
+    background: #c0392b;
+}
+
+.btn-change-image {
+    background: #3498db;
+    color: white;
+}
+
+.btn-change-image:hover {
+    background: #2980b9;
 }
 
 /* Form Actions */
