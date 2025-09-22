@@ -945,11 +945,19 @@ async function criarCodigoTeste() {
     }
 }
 
-// Listener global para botões de salvar
+// Listener global para botões de salvar (apenas códigos de desconto)
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('save-btn') || e.target.textContent.includes('Salvar Código')) {
+    // Verificar se é especificamente um botão de salvar código de desconto
+    if (e.target.classList.contains('save-btn') && e.target.closest('#descontoModal')) {
         e.preventDefault();
-        console.log('🎟️ Botão de salvar clicado globalmente!');
+        console.log('🎟️ Botão de salvar código clicado globalmente!');
+        saveCodigoDesconto();
+    }
+    
+    // Verificar se é um botão que contém "Salvar Código" especificamente
+    if (e.target.textContent.includes('Salvar Código') && e.target.closest('#descontoModal')) {
+        e.preventDefault();
+        console.log('🎟️ Botão "Salvar Código" clicado globalmente!');
         saveCodigoDesconto();
     }
 });
