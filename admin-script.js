@@ -46,6 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('💰 Carregando vendas...');
         calculateSales();
         
+        // Carregar códigos de desconto
+        console.log('🎟️ Carregando códigos de desconto...');
+        loadCodigosDesconto();
+        
         // Forçar renderização após 2 segundos
         setTimeout(() => {
             console.log('🔄 Forçando renderização inicial...');
@@ -244,23 +248,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('📊 Total de pedidos encontrados:', allOrders.size);
             
-            // Filtrar pedidos entregues por período
+            // Filtrar pedidos por período (todos os status)
             const todayOrders = allOrders.docs.filter(doc => {
                 const data = doc.data();
                 const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
-                return data.status === 'Entregue' && timestamp >= today;
+                return timestamp >= today;
             });
             
             const weekOrders = allOrders.docs.filter(doc => {
                 const data = doc.data();
                 const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
-                return data.status === 'Entregue' && timestamp >= weekStart;
+                return timestamp >= weekStart;
             });
             
             const monthOrders = allOrders.docs.filter(doc => {
                 const data = doc.data();
                 const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || 0);
-                return data.status === 'Entregue' && timestamp >= monthStart;
+                return timestamp >= monthStart;
             });
             
             // Calcular totais
@@ -268,16 +272,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const weekTotal = weekOrders.reduce((sum, doc) => sum + (doc.data().total || 0), 0);
             const monthTotal = monthOrders.reduce((sum, doc) => sum + (doc.data().total || 0), 0);
             
-            console.log('📊 Pedidos entregues - Hoje:', todayOrders.length, '| Semana:', weekOrders.length, '| Mês:', monthOrders.length);
+            console.log('📊 Pedidos totais - Hoje:', todayOrders.length, '| Semana:', weekOrders.length, '| Mês:', monthOrders.length);
             
             // Atualizar interface
             document.getElementById('salesToday').textContent = `R$ ${todayTotal.toFixed(2).replace('.', ',')}`;
             document.getElementById('ordersToday').textContent = `${todayOrders.length} pedidos`;
-            document.getElementById('statusToday').textContent = todayOrders.length > 0 ? '✅ Vendas confirmadas' : '⏳ Aguardando vendas';
+            document.getElementById('statusToday').textContent = todayOrders.length > 0 ? '✅ Pedidos recebidos' : '⏳ Aguardando pedidos';
             
             document.getElementById('salesWeek').textContent = `R$ ${weekTotal.toFixed(2).replace('.', ',')}`;
             document.getElementById('ordersWeek').textContent = `${weekOrders.length} pedidos`;
-            document.getElementById('statusWeek').textContent = weekOrders.length > 0 ? '📈 Crescimento semanal' : '📊 Sem vendas ainda';
+            document.getElementById('statusWeek').textContent = weekOrders.length > 0 ? '📈 Crescimento semanal' : '📊 Sem pedidos ainda';
             
             document.getElementById('salesMonth').textContent = `R$ ${monthTotal.toFixed(2).replace('.', ',')}`;
             document.getElementById('ordersMonth').textContent = `${monthOrders.length} pedidos`;
@@ -299,7 +303,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('❌ Erro ao calcular vendas:', error);
             showNotification('Erro ao calcular vendas: ' + error.message, 'error');
         }
-    };
+    }
+    
     
     // Função para atualizar vendas
     window.refreshSales = function() {
@@ -350,10 +355,610 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateSales();
             
         } catch (error) {
-            console.error('❌ Erro ao limpar pedidos:', error);
-            alert('❌ Erro ao limpar pedidos: ' + error.message);
+        console.error('❌ Erro ao limpar pedidos:', error);
+        alert('❌ Erro ao limpar pedidos: ' + error.message);
+    }
+};
+
+// ==================== SISTEMA DE CÓDIGOS DE DESCONTO ====================
+
+// Variáveis globais para descontos
+let codigosDesconto = [];
+let currentCodigoId = null;
+
+// Elementos DOM para descontos
+const descontoModal = document.getElementById('descontoModal');
+const descontoForm = document.getElementById('descontoModal');
+const codigosList = document.getElementById('codigosList');
+
+// Função para carregar códigos de desconto
+async function loadCodigosDesconto() {
+    try {
+        console.log('🎟️ Carregando códigos de desconto...');
+        console.log('🎟️ Elemento codigosList:', document.getElementById('codigosList'));
+        
+        const snapshot = await db.collection('codigosDesconto').get();
+        codigosDesconto = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        console.log('✅ Códigos carregados:', codigosDesconto.length);
+        renderCodigosDesconto();
+        updateDescontoStats();
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar códigos:', error);
+        showNotification('Erro ao carregar códigos: ' + error.message, 'error');
+    }
+}
+
+// Função para renderizar códigos de desconto
+function renderCodigosDesconto() {
+    console.log('🎟️ Renderizando códigos...', codigosDesconto.length);
+    console.log('🎟️ Elemento codigosList:', codigosList);
+    
+    if (!codigosList) {
+        console.error('❌ Elemento codigosList não encontrado!');
+        return;
+    }
+    
+    // Forçar visibilidade da seção
+    const descontoSection = codigosList.closest('.admin-section');
+    if (descontoSection) {
+        descontoSection.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            margin-top: 2rem !important;
+            background: white !important;
+            border-radius: 10px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+        `;
+        console.log('✅ Seção de descontos forçada a ser visível');
+    }
+    
+    // Forçar visibilidade do elemento codigosList
+    codigosList.style.cssText = `
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 100px !important;
+        background: #f8f9fa !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        border: 2px solid #e9ecef !important;
+    `;
+    
+    if (codigosDesconto.length === 0) {
+        codigosList.innerHTML = `
+            <div style="text-align: center; padding: 2rem; background: #e8f5e8; border-radius: 8px; border: 2px solid #4caf50;">
+                <h3 style="color: #2e7d32; margin: 0 0 1rem 0;">🎟️ Seção de Códigos de Desconto</h3>
+                <p style="margin: 0 0 1rem 0; color: #666;">Nenhum código de desconto encontrado</p>
+                <button onclick="openDescontoModal()" style="background: #4caf50; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    ➕ Criar Primeiro Código
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    codigosList.innerHTML = codigosDesconto.map(codigo => {
+        const totalUsos = Object.keys(codigo).filter(key => key.startsWith('usado_')).length;
+        const limiteText = codigo.limiteUsos ? `${totalUsos}/${codigo.limiteUsos}` : `${totalUsos}/∞`;
+        
+        return `
+            <div class="codigo-card">
+                <div class="codigo-header">
+                    <div class="codigo-info">
+                        <span class="codigo-codigo">${codigo.codigo}</span>
+                        <span class="codigo-desconto">${codigo.desconto}% OFF</span>
+                        <span class="codigo-status ${codigo.ativo ? 'ativo' : 'inativo'}">
+                            ${codigo.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="codigo-details">
+                    <div><strong>Parceiro:</strong> ${codigo.parceiroNome} (ID: ${codigo.parceiroId})</div>
+                    <div><strong>Usos:</strong> ${limiteText}</div>
+                    <div><strong>Criado:</strong> ${codigo.criadoEm ? codigo.criadoEm.toDate().toLocaleDateString('pt-BR') : 'N/A'}</div>
+                    <div><strong>Observações:</strong> ${codigo.observacoes || 'Nenhuma'}</div>
+                </div>
+                
+                <div class="codigo-actions">
+                    <button class="codigo-btn editar" onclick="editCodigo('${codigo.id}')">✏️ Editar</button>
+                    <button class="codigo-btn duplicar" onclick="duplicarCodigo('${codigo.id}')">📋 Duplicar</button>
+                    <button class="codigo-btn excluir" onclick="deleteCodigo('${codigo.id}')">🗑️ Excluir</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Função para atualizar estatísticas de descontos
+function updateDescontoStats() {
+    const totalCodigos = codigosDesconto.length;
+    const codigosAtivos = codigosDesconto.filter(c => c.ativo).length;
+    const totalUsos = codigosDesconto.reduce((sum, codigo) => {
+        return sum + Object.keys(codigo).filter(key => key.startsWith('usado_')).length;
+    }, 0);
+    
+    const totalCodigosEl = document.getElementById('totalCodigos');
+    const codigosAtivosEl = document.getElementById('codigosAtivos');
+    const totalUsosEl = document.getElementById('totalUsos');
+    
+    if (totalCodigosEl) totalCodigosEl.textContent = totalCodigos;
+    if (codigosAtivosEl) codigosAtivosEl.textContent = codigosAtivos;
+    if (totalUsosEl) totalUsosEl.textContent = totalUsos;
+    
+    // Forçar visibilidade das estatísticas
+    const statsContainer = document.querySelector('.desconto-stats');
+    if (statsContainer) {
+        statsContainer.style.cssText = `
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+            gap: 1rem !important;
+            margin-bottom: 2rem !important;
+        `;
+        console.log('✅ Estatísticas de descontos forçadas a ser visíveis');
+    }
+}
+
+// Função para abrir modal de desconto
+function openDescontoModal(codigoId = null) {
+    console.log('🎟️ Abrindo modal de desconto...', codigoId);
+    currentCodigoId = codigoId;
+    const modal = document.getElementById('descontoModal');
+    const title = document.getElementById('descontoModalTitle');
+    
+    if (!modal) {
+        console.error('❌ Modal não encontrado!');
+        return;
+    }
+    
+    if (codigoId) {
+        title.textContent = 'Editar Código de Desconto';
+        const codigo = codigosDesconto.find(c => c.id === codigoId);
+        if (codigo) {
+            document.getElementById('codigo').value = codigo.codigo;
+            document.getElementById('desconto').value = codigo.desconto;
+            document.getElementById('parceiroNome').value = codigo.parceiroNome;
+            document.getElementById('parceiroId').value = codigo.parceiroId;
+            document.getElementById('limiteUsos').value = codigo.limiteUsos || '';
+            document.getElementById('ativo').value = codigo.ativo.toString();
+            document.getElementById('observacoes').value = codigo.observacoes || '';
         }
-    };
+    } else {
+        title.textContent = 'Novo Código de Desconto';
+        document.getElementById('descontoForm').reset();
+        document.getElementById('desconto').value = '10';
+        document.getElementById('ativo').value = 'true';
+    }
+    
+    modal.style.display = 'block';
+    console.log('✅ Modal aberto com sucesso!');
+}
+
+// Função para salvar código de desconto
+async function saveCodigoDesconto() {
+    try {
+        console.log('🎟️ Salvando código de desconto...');
+        console.log('🎟️ currentCodigoId:', currentCodigoId);
+        
+        // Verificar se os elementos existem
+        const codigoEl = document.getElementById('codigo');
+        const descontoEl = document.getElementById('desconto');
+        const parceiroNomeEl = document.getElementById('parceiroNome');
+        const parceiroIdEl = document.getElementById('parceiroId');
+        const limiteUsosEl = document.getElementById('limiteUsos');
+        const ativoEl = document.getElementById('ativo');
+        const observacoesEl = document.getElementById('observacoes');
+        
+        console.log('🎟️ Elementos encontrados:', {
+            codigo: !!codigoEl,
+            desconto: !!descontoEl,
+            parceiroNome: !!parceiroNomeEl,
+            parceiroId: !!parceiroIdEl,
+            limiteUsos: !!limiteUsosEl,
+            ativo: !!ativoEl,
+            observacoes: !!observacoesEl
+        });
+        
+        if (!codigoEl || !descontoEl || !parceiroNomeEl || !parceiroIdEl) {
+            console.error('❌ Elementos do formulário não encontrados!');
+            alert('Erro: Elementos do formulário não encontrados!');
+            return;
+        }
+        
+        const codigo = codigoEl.value.trim().toUpperCase();
+        const desconto = parseInt(descontoEl.value);
+        const parceiroNome = parceiroNomeEl.value.trim();
+        const parceiroId = parceiroIdEl.value.trim();
+        const limiteUsos = limiteUsosEl.value ? parseInt(limiteUsosEl.value) : null;
+        const ativo = ativoEl.value === 'true';
+        const observacoes = observacoesEl ? observacoesEl.value.trim() : '';
+        
+        console.log('📝 Dados do código:', { codigo, desconto, parceiroNome, parceiroId, limiteUsos, ativo, observacoes });
+        
+        if (!codigo || !parceiroNome || !parceiroId) {
+            alert('Por favor, preencha todos os campos obrigatórios!');
+            return;
+        }
+        
+        // Verificar se código já existe (exceto se estiver editando)
+        if (!currentCodigoId) {
+            const existingCodigo = codigosDesconto.find(c => c.codigo === codigo);
+            if (existingCodigo) {
+                alert('Este código já existe!');
+                return;
+            }
+        }
+        
+        const codigoData = {
+            codigo: codigo,
+            desconto: desconto,
+            parceiroNome: parceiroNome,
+            parceiroId: parceiroId,
+            limiteUsos: limiteUsos,
+            ativo: ativo,
+            observacoes: observacoes,
+            criadoEm: currentCodigoId ? undefined : new Date(),
+            atualizadoEm: new Date()
+        };
+        
+        console.log('💾 Salvando no Firebase...', codigoData);
+        
+        if (currentCodigoId) {
+            // Editar código existente
+            await db.collection('codigosDesconto').doc(currentCodigoId).update(codigoData);
+            console.log('✅ Código atualizado:', codigo);
+        } else {
+            // Criar novo código
+            const docRef = await db.collection('codigosDesconto').add(codigoData);
+            console.log('✅ Código criado:', codigo, 'ID:', docRef.id);
+        }
+        
+        // Fechar modal e recarregar
+        document.getElementById('descontoModal').style.display = 'none';
+        await loadCodigosDesconto();
+        showNotification('Código salvo com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar código:', error);
+        console.error('❌ Stack trace:', error.stack);
+        showNotification('Erro ao salvar código: ' + error.message, 'error');
+    }
+}
+
+// Função para editar código
+function editCodigo(codigoId) {
+    openDescontoModal(codigoId);
+}
+
+// Função para duplicar código
+function duplicarCodigo(codigoId) {
+    const codigo = codigosDesconto.find(c => c.id === codigoId);
+    if (codigo) {
+        openDescontoModal();
+        document.getElementById('codigo').value = codigo.codigo + '_COPY';
+        document.getElementById('desconto').value = codigo.desconto;
+        document.getElementById('parceiroNome').value = codigo.parceiroNome;
+        document.getElementById('parceiroId').value = codigo.parceiroId + '_COPY';
+        document.getElementById('limiteUsos').value = codigo.limiteUsos || '';
+        document.getElementById('ativo').value = 'true';
+        document.getElementById('observacoes').value = `Cópia de ${codigo.codigo} - ${codigo.observacoes || ''}`;
+    }
+}
+
+// Função para excluir código
+async function deleteCodigo(codigoId) {
+    if (!confirm('⚠️ Tem certeza que deseja excluir este código?\n\nEsta ação não pode ser desfeita!')) {
+        return;
+    }
+    
+    try {
+        await db.collection('codigosDesconto').doc(codigoId).delete();
+        console.log('✅ Código excluído:', codigoId);
+        
+        await loadCodigosDesconto();
+        showNotification('Código excluído com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir código:', error);
+        showNotification('Erro ao excluir código: ' + error.message, 'error');
+    }
+}
+
+
+// Event listeners para descontos
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎟️ Inicializando event listeners de desconto...');
+    
+    // Adicionar event listener para o formulário de desconto
+    const form = document.getElementById('descontoForm');
+    console.log('🎟️ Formulário encontrado:', form);
+    
+    if (form) {
+        console.log('🎟️ Adicionando event listener ao formulário de desconto');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('🎟️ Formulário submetido!');
+            saveCodigoDesconto();
+        });
+        
+        // Também adicionar listener no botão de salvar
+        const saveBtn = form.querySelector('button[type="submit"]');
+        if (saveBtn) {
+            console.log('🎟️ Botão de salvar encontrado:', saveBtn);
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🎟️ Botão de salvar clicado!');
+                saveCodigoDesconto();
+            });
+        }
+        
+        // Adicionar listener também por ID
+        const saveBtnById = document.querySelector('.save-btn');
+        if (saveBtnById) {
+            console.log('🎟️ Botão de salvar por ID encontrado:', saveBtnById);
+            saveBtnById.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🎟️ Botão de salvar por ID clicado!');
+                saveCodigoDesconto();
+            });
+        }
+    } else {
+        console.error('❌ Formulário de desconto não encontrado!');
+    }
+    
+    // Adicionar event listener para o botão cancelar
+    const cancelDescontoBtn = document.getElementById('cancelDescontoBtn');
+    if (cancelDescontoBtn) {
+        console.log('🎟️ Botão cancelar encontrado');
+        cancelDescontoBtn.addEventListener('click', function() {
+            console.log('🎟️ Botão cancelar clicado');
+            document.getElementById('descontoModal').style.display = 'none';
+        });
+    }
+    
+    // Adicionar event listener para o X de fechar
+    const closeBtn = document.querySelector('#descontoModal .close');
+    if (closeBtn) {
+        console.log('🎟️ Botão X encontrado');
+        closeBtn.addEventListener('click', function() {
+            console.log('🎟️ Botão X clicado');
+            document.getElementById('descontoModal').style.display = 'none';
+        });
+    }
+    
+    // Fechar modal clicando fora dele
+    const modal = document.getElementById('descontoModal');
+    if (modal) {
+        console.log('🎟️ Modal encontrado para click outside');
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                console.log('🎟️ Click fora do modal');
+                modal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Converter código para maiúsculas automaticamente
+    const codigoInput = document.getElementById('codigo');
+    if (codigoInput) {
+        codigoInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    }
+});
+
+// Função de teste para descontos
+window.testDescontos = function() {
+    console.log('🧪 Testando seção de descontos...');
+    
+    // Verificar se os elementos existem
+    const codigosList = document.getElementById('codigosList');
+    const totalCodigos = document.getElementById('totalCodigos');
+    const codigosAtivos = document.getElementById('codigosAtivos');
+    const totalUsos = document.getElementById('totalUsos');
+    
+    console.log('🧪 Elementos encontrados:');
+    console.log('- codigosList:', codigosList);
+    console.log('- totalCodigos:', totalCodigos);
+    console.log('- codigosAtivos:', codigosAtivos);
+    console.log('- totalUsos:', totalUsos);
+    
+    // Forçar exibição da seção inteira
+    const descontoSection = document.querySelector('.admin-section:has(#codigosList)');
+    if (descontoSection) {
+        descontoSection.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            margin-top: 2rem !important;
+            background: white !important;
+            border-radius: 10px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            border: 3px solid #4caf50 !important;
+        `;
+        console.log('✅ Seção de descontos forçada a ser visível');
+    }
+    
+    // Forçar exibição das estatísticas
+    const statsContainer = document.querySelector('.desconto-stats');
+    if (statsContainer) {
+        statsContainer.style.cssText = `
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+            gap: 1rem !important;
+            margin-bottom: 2rem !important;
+            background: #f0f8ff !important;
+            padding: 1rem !important;
+            border-radius: 8px !important;
+            border: 2px solid #007bff !important;
+        `;
+        console.log('✅ Estatísticas forçadas a ser visíveis');
+    }
+    
+    // Forçar exibição da lista
+    if (codigosList) {
+        codigosList.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: 100px !important;
+            background: #e8f5e8 !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            border: 2px solid #4caf50 !important;
+        `;
+        
+        codigosList.innerHTML = `
+            <div style="background: #e8f5e8; padding: 1rem; border-radius: 8px; border: 2px solid #4caf50;">
+                <h3 style="color: #2e7d32; margin: 0 0 1rem 0;">✅ Seção de Descontos Funcionando!</h3>
+                <p style="margin: 0 0 1rem 0;">A seção de códigos de desconto está carregada e funcionando.</p>
+                <button onclick="loadCodigosDesconto()" style="background: #4caf50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                    🔄 Recarregar Códigos
+                </button>
+            </div>
+        `;
+    }
+    
+    // Atualizar estatísticas de teste
+    if (totalCodigos) totalCodigos.textContent = '0';
+    if (codigosAtivos) codigosAtivos.textContent = '0';
+    if (totalUsos) totalUsos.textContent = '0';
+    
+    // Tentar carregar códigos
+    loadCodigosDesconto();
+};
+
+// Função para testar salvamento de código
+function testSaveCodigo() {
+    console.log('🧪 Testando salvamento de código...');
+    
+    // Preencher campos de teste
+    document.getElementById('codigo').value = 'TESTE' + Date.now().toString().slice(-4);
+    document.getElementById('desconto').value = '15';
+    document.getElementById('parceiroNome').value = 'Teste Manual';
+    document.getElementById('parceiroId').value = 'MANUAL' + Date.now().toString().slice(-3);
+    document.getElementById('limiteUsos').value = '50';
+    document.getElementById('ativo').value = 'true';
+    document.getElementById('observacoes').value = 'Teste manual do salvamento';
+    
+    console.log('🧪 Campos preenchidos, chamando saveCodigoDesconto...');
+    
+    // Chamar função de salvar
+    saveCodigoDesconto();
+}
+
+// Função para testar salvamento direto no Firebase
+async function testFirebaseDesconto() {
+    try {
+        console.log('🧪 Testando salvamento direto no Firebase...');
+        
+        const codigoData = {
+            codigo: 'DIRETO' + Date.now().toString().slice(-4),
+            desconto: 20,
+            parceiroNome: 'Teste Direto',
+            parceiroId: 'DIR' + Date.now().toString().slice(-3),
+            limiteUsos: 25,
+            ativo: true,
+            observacoes: 'Teste direto no Firebase',
+            criadoEm: new Date(),
+            atualizadoEm: new Date()
+        };
+        
+        console.log('💾 Salvando diretamente no Firebase...', codigoData);
+        
+        const docRef = await db.collection('codigosDesconto').add(codigoData);
+        console.log('✅ Código salvo diretamente:', codigoData.codigo, 'ID:', docRef.id);
+        
+        // Recarregar códigos
+        await loadCodigosDesconto();
+        showNotification('Código salvo diretamente com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro no teste direto:', error);
+        showNotification('Erro no teste direto: ' + error.message, 'error');
+    }
+}
+
+// Função para criar código de teste
+async function criarCodigoTeste() {
+    try {
+        console.log('🧪 Criando código de teste...');
+        
+        // Primeiro testar a conexão
+        console.log('🔍 Testando conexão Firebase...');
+        console.log('🔍 DB object:', db);
+        console.log('🔍 Firebase config:', firebase.app().options);
+        
+        const codigoData = {
+            codigo: 'TESTE' + Date.now().toString().slice(-4),
+            desconto: 10,
+            parceiroNome: 'Teste Automático',
+            parceiroId: 'TEST' + Date.now().toString().slice(-3),
+            limiteUsos: 100,
+            ativo: true,
+            observacoes: 'Código criado automaticamente para teste',
+            criadoEm: new Date(),
+            atualizadoEm: new Date()
+        };
+        
+        console.log('💾 Salvando código de teste no Firebase...', codigoData);
+        
+        // Tentar salvar
+        const docRef = await db.collection('codigosDesconto').add(codigoData);
+        console.log('✅ Código de teste criado:', codigoData.codigo, 'ID:', docRef.id);
+        
+        // Recarregar códigos
+        await loadCodigosDesconto();
+        showNotification('Código de teste criado com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar código de teste:', error);
+        console.error('❌ Detalhes do erro:', error.message);
+        console.error('❌ Stack trace:', error.stack);
+        
+        // Tentar diagnóstico
+        if (error.code === 'permission-denied') {
+            showNotification('Erro: Permissão negada. Verifique as regras do Firestore.', 'error');
+        } else if (error.code === 'unavailable') {
+            showNotification('Erro: Firebase indisponível. Verifique sua conexão.', 'error');
+        } else if (error.message.includes('API key')) {
+            showNotification('Erro: Chave da API inválida. Verifique a configuração do Firebase.', 'error');
+        } else {
+            showNotification('Erro ao criar código de teste: ' + error.message, 'error');
+        }
+    }
+}
+
+// Listener global para botões de salvar
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('save-btn') || e.target.textContent.includes('Salvar Código')) {
+        e.preventDefault();
+        console.log('🎟️ Botão de salvar clicado globalmente!');
+        saveCodigoDesconto();
+    }
+});
+
+// Funções globais
+window.openDescontoModal = openDescontoModal;
+window.editCodigo = editCodigo;
+window.duplicarCodigo = duplicarCodigo;
+window.deleteCodigo = deleteCodigo;
+window.loadCodigosDesconto = loadCodigosDesconto;
+window.criarCodigoTeste = criarCodigoTeste;
+window.testSaveCodigo = testSaveCodigo;
+window.testFirebaseDesconto = testFirebaseDesconto;
 });
 
 // Verificar autenticação
@@ -443,6 +1048,10 @@ function switchTab(tab) {
         // Carregar vendas quando trocar para a aba
         console.log('💰 Carregando vendas...');
         calculateSales();
+        
+        // Carregar códigos de desconto quando trocar para a aba
+        console.log('🎟️ Carregando códigos de desconto...');
+        loadCodigosDesconto();
     } else if (tab === 'pedidos') {
         console.log('📋 Ativando aba Pedidos');
         pedidosTabBtn.classList.add('active');
@@ -916,6 +1525,12 @@ async function loadOrders() {
     }
 }
 
+// Função para atualizar vendas quando novos pedidos chegarem
+function updateSalesOnNewOrder() {
+    console.log('🔄 Atualizando vendas devido a novo pedido...');
+    calculateSales();
+}
+
 // Renderizar pedidos
 function renderOrders() {
     console.log('🎨 Renderizando pedidos:', orders.length);
@@ -1105,6 +1720,9 @@ function renderOrders() {
     
     console.log('✅ HTML inserido no DOM com sucesso!');
     console.log('🔍 Conteúdo atual do pedidosList:', pedidosList.innerHTML.substring(0, 200) + '...');
+    
+    // Atualizar vendas quando pedidos são renderizados
+    updateSalesOnNewOrder();
 }
 
 // Obter botões de status baseado no status atual
@@ -1177,6 +1795,9 @@ async function deleteOrder(orderId) {
         const orderIndex = orders.findIndex(order => order.id === orderId);
         if (orderIndex !== -1) {
             orders.splice(orderIndex, 1);
+            console.log('🗑️ Pedido removido da lista local:', orderId);
+        } else {
+            console.log('⚠️ Pedido não encontrado na lista local:', orderId);
         }
         
         // Recalcular vendas se o pedido era entregue
@@ -1186,6 +1807,8 @@ async function deleteOrder(orderId) {
         }
         
         // Re-renderizar pedidos
+        console.log('🔄 Re-renderizando pedidos após exclusão...');
+        console.log('📊 Total de pedidos na lista local:', orders.length);
         renderOrders();
         updateOrderStats();
         

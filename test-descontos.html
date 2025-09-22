@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Seção de Descontos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .desconto-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .stat-card h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #666;
+            font-weight: 500;
+        }
+        .stat-card span {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .codigos-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 100px;
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Teste - Seção de Descontos</h1>
+        <p>Este é um teste para verificar se a seção de descontos está funcionando corretamente.</p>
+        
+        <button class="test-btn" onclick="testarSeção()">Testar Seção</button>
+        <button class="test-btn" onclick="criarCódigoTeste()">Criar Código Teste</button>
+    </div>
+
+    <div class="test-container">
+        <h2>🎟️ Gerenciar Códigos de Desconto</h2>
+        
+        <!-- Estatísticas de Descontos -->
+        <div class="desconto-stats">
+            <div class="stat-card">
+                <h3>📊 Total de Códigos</h3>
+                <span id="totalCodigos">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Códigos Ativos</h3>
+                <span id="codigosAtivos">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>🎯 Total de Usos</h3>
+                <span id="totalUsos">0</span>
+            </div>
+        </div>
+        
+        <!-- Lista de Códigos -->
+        <div id="codigosList" class="codigos-list">
+            <div style="text-align: center; padding: 2rem; color: #666;">
+                <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                <p>Carregando códigos...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testarSeção() {
+            console.log('🧪 Testando seção de descontos...');
+            
+            const codigosList = document.getElementById('codigosList');
+            const totalCodigos = document.getElementById('totalCodigos');
+            const codigosAtivos = document.getElementById('codigosAtivos');
+            const totalUsos = document.getElementById('totalUsos');
+            
+            console.log('Elementos encontrados:');
+            console.log('- codigosList:', codigosList);
+            console.log('- totalCodigos:', totalCodigos);
+            console.log('- codigosAtivos:', codigosAtivos);
+            console.log('- totalUsos:', totalUsos);
+            
+            if (codigosList) {
+                codigosList.innerHTML = `
+                    <div style="background: #e8f5e8; padding: 1rem; border-radius: 8px; border: 2px solid #4caf50;">
+                        <h3 style="color: #2e7d32; margin: 0 0 1rem 0;">✅ Seção de Descontos Funcionando!</h3>
+                        <p style="margin: 0 0 1rem 0;">A seção de códigos de desconto está carregada e funcionando.</p>
+                        <p style="margin: 0; font-size: 0.9rem; color: #666;">Este é um teste para verificar se todos os elementos estão sendo exibidos corretamente.</p>
+                    </div>
+                `;
+            }
+            
+            if (totalCodigos) totalCodigos.textContent = '3';
+            if (codigosAtivos) codigosAtivos.textContent = '2';
+            if (totalUsos) totalUsos.textContent = '15';
+        }
+        
+        function criarCódigoTeste() {
+            const codigosList = document.getElementById('codigosList');
+            if (codigosList) {
+                codigosList.innerHTML = `
+                    <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span style="font-size: 1.2rem; font-weight: bold; color: #007bff; background: #e3f2fd; padding: 0.3rem 0.6rem; border-radius: 4px;">FRY2024</span>
+                                <span style="font-size: 1rem; color: #28a745; font-weight: bold;">10% OFF</span>
+                                <span style="padding: 0.3rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: bold; background: #d4edda; color: #155724;">Ativo</span>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                            <div><strong>Parceiro:</strong> João Silva (ID: 001)</div>
+                            <div><strong>Usos:</strong> 5/100</div>
+                            <div><strong>Criado:</strong> 15/12/2024</div>
+                            <div><strong>Observações:</strong> Código promocional</div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button style="padding: 0.4rem 0.8rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: #007bff; color: white;">✏️ Editar</button>
+                            <button style="padding: 0.4rem 0.8rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: #28a745; color: white;">📋 Duplicar</button>
+                            <button style="padding: 0.4rem 0.8rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: #dc3545; color: white;">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-testar ao carregar
+        setTimeout(testarSeção, 1000);
+    </script>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>

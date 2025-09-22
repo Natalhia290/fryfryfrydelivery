@@ -31,10 +31,60 @@
         <div class="container">
             <!-- Tab Cardápio -->
             <div id="cardapioTab" class="tab-content active">
+                <!-- Seção de Códigos de Desconto - MOVIDA PARA O TOPO -->
+                <div class="admin-section" style="margin-bottom: 2rem; display: block !important; visibility: visible !important; opacity: 1 !important; background: white !important; border-radius: 10px !important; padding: 1.5rem !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; border: 3px solid #4caf50 !important; position: relative !important; z-index: 999 !important;">
+                    <div class="section-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 1rem !important;">
+                        <h2 style="margin: 0 !important; color: #333 !important; font-size: 1.5rem !important;">🎟️ Gerenciar Códigos de Desconto</h2>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <button onclick="openDescontoModal()" class="add-btn" style="background: #28a745 !important; color: white !important; border: none !important; padding: 0.8rem 1.5rem !important; border-radius: 5px !important; cursor: pointer !important; font-weight: bold !important;">
+                                ➕ Novo Código
+                            </button>
+                            <button onclick="criarCodigoTeste()" style="background: #ff6b35 !important; color: white !important; border: none !important; padding: 0.8rem 1.5rem !important; border-radius: 5px !important; cursor: pointer !important; font-weight: bold !important;">
+                                🧪 Criar Teste
+                            </button>
+                            <button onclick="testFirebaseConnection()" style="background: #17a2b8 !important; color: white !important; border: none !important; padding: 0.8rem 1.5rem !important; border-radius: 5px !important; cursor: pointer !important; font-weight: bold !important;">
+                                🔧 Testar Firebase
+                            </button>
+                            <button onclick="testFirebaseDesconto()" style="background: #6f42c1 !important; color: white !important; border: none !important; padding: 0.8rem 1.5rem !important; border-radius: 5px !important; cursor: pointer !important; font-weight: bold !important;">
+                                🎯 Testar Desconto
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Estatísticas de Descontos -->
+                    <div class="desconto-stats" style="display: grid !important; visibility: visible !important; opacity: 1 !important; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important; gap: 1rem !important; margin-bottom: 2rem !important; background: #f0f8ff !important; padding: 1rem !important; border-radius: 8px !important; border: 2px solid #007bff !important;">
+                        <div class="stat-card" style="background: white !important; padding: 1.5rem !important; border-radius: 10px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; text-align: center !important; border: 2px solid transparent !important; transition: all 0.3s ease !important;">
+                            <h3 style="margin: 0 0 0.5rem 0 !important; font-size: 1rem !important; color: #666 !important; font-weight: 500 !important;">📊 Total de Códigos</h3>
+                            <span id="totalCodigos" style="font-size: 2rem !important; font-weight: bold !important; color: #333 !important;">0</span>
+                        </div>
+                        <div class="stat-card" style="background: white !important; padding: 1.5rem !important; border-radius: 10px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; text-align: center !important; border: 2px solid transparent !important; transition: all 0.3s ease !important;">
+                            <h3 style="margin: 0 0 0.5rem 0 !important; font-size: 1rem !important; color: #666 !important; font-weight: 500 !important;">✅ Códigos Ativos</h3>
+                            <span id="codigosAtivos" style="font-size: 2rem !important; font-weight: bold !important; color: #333 !important;">0</span>
+                        </div>
+                        <div class="stat-card" style="background: white !important; padding: 1.5rem !important; border-radius: 10px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; text-align: center !important; border: 2px solid transparent !important; transition: all 0.3s ease !important;">
+                            <h3 style="margin: 0 0 0.5rem 0 !important; font-size: 1rem !important; color: #666 !important; font-weight: 500 !important;">🎯 Total de Usos</h3>
+                            <span id="totalUsos" style="font-size: 2rem !important; font-weight: bold !important; color: #333 !important;">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de Códigos -->
+                    <div id="codigosList" class="codigos-list" style="display: block !important; visibility: visible !important; opacity: 1 !important; min-height: 100px !important; background: #e8f5e8 !important; border-radius: 8px !important; padding: 1rem !important; border: 2px solid #4caf50 !important;">
+                        <div class="loading-codigos" style="text-align: center !important; padding: 2rem !important; color: #666 !important;">
+                            <div class="spinner" style="width: 40px !important; height: 40px !important; border: 4px solid #f3f3f3 !important; border-top: 4px solid #007bff !important; border-radius: 50% !important; animation: spin 1s linear infinite !important; margin: 0 auto 1rem !important;"></div>
+                            <p style="margin: 0 !important;">Carregando códigos...</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="admin-section">
                     <div class="section-header">
                         <h2>Gerenciar Cardápio</h2>
-                        <button id="addProductBtn" class="add-btn">+ Adicionar Produto</button>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <button id="addProductBtn" class="add-btn">+ Adicionar Produto</button>
+                            <button onclick="testDescontos()" style="background: #9b59b6; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                                🧪 Mostrar Descontos
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filtros Admin -->
@@ -61,9 +111,12 @@
                             <button onclick="refreshSales()" style="background: #3498db; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
                                 🔄 Atualizar
                             </button>
-                            <button onclick="clearTodayOrders()" style="background: #e67e22; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
-                                🗑️ Limpar Hoje
-                            </button>
+                        <button onclick="clearTodayOrders()" style="background: #e67e22; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                            🗑️ Limpar Hoje
+                        </button>
+                        <button onclick="testDescontos()" style="background: #9b59b6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                            🧪 Testar Descontos
+                        </button>
                         </div>
                     </div>
                     
@@ -178,7 +231,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                
         </div>
     </main>
 
@@ -245,6 +298,66 @@
                 <button id="cancelDeleteBtn" class="cancel-btn">Cancelar</button>
                 <button id="confirmDeleteBtn" class="delete-btn">Excluir</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Código de Desconto -->
+    <div id="descontoModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2 id="descontoModalTitle">Novo Código de Desconto</h2>
+            <form id="descontoForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="codigo">Código:</label>
+                        <input type="text" id="codigo" placeholder="Ex: FRY2024" maxlength="20" required>
+                        <small>Será convertido para maiúsculas automaticamente</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="desconto">Desconto (%):</label>
+                        <input type="number" id="desconto" min="1" max="100" value="10" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="parceiroNome">Nome do Parceiro:</label>
+                        <input type="text" id="parceiroNome" placeholder="Ex: João Silva" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="parceiroId">ID do Parceiro:</label>
+                        <input type="text" id="parceiroId" placeholder="Ex: 001" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="limiteUsos">Limite de Usos:</label>
+                        <input type="number" id="limiteUsos" min="1" placeholder="Deixe vazio para ilimitado">
+                        <small>Deixe vazio para uso ilimitado</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ativo">Status:</label>
+                        <select id="ativo">
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="observacoes">Observações:</label>
+                    <textarea id="observacoes" rows="3" placeholder="Observações sobre o código..."></textarea>
+                </div>
+                
+                        <div class="form-actions">
+                            <button type="button" id="cancelDescontoBtn" class="cancel-btn">Cancelar</button>
+                            <button type="button" onclick="testSaveCodigo()" style="background: #ffc107; color: #000; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 1rem;">
+                                🧪 Testar Salvar
+                            </button>
+                            <button type="submit" class="save-btn">Salvar Código</button>
+                        </div>
+            </form>
         </div>
     </div>
 

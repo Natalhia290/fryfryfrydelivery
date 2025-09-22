@@ -19,7 +19,8 @@ if (!firebase.apps.length) {
 
 // Inicializar serviços
 const db = firebase.firestore();
-const auth = firebase.auth();
+// Removido auth para evitar erro de API key
+// const auth = firebase.auth();
 
 // Configurações do Firestore
 const settings = {
@@ -36,7 +37,7 @@ db.enableNetwork().then(() => {
 
 // Exportar para uso global
 window.db = db;
-window.auth = auth;
+// window.auth = auth; // Removido
 window.firebase = firebase;
 
 // Função de teste de conexão

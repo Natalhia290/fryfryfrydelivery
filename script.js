@@ -3,6 +3,8 @@ let menuData = {};
 let currentFilter = 'todos';
 let isAdminLoggedIn = false;
 let cart = [];
+let codigoDescontoAplicado = null;
+let descontoAtivo = false;
 
 // Elementos DOM
 const produtosContainer = document.getElementById('produtos');
@@ -321,6 +323,12 @@ function updateCartUI() {
     cartCount.textContent = totalItems;
 }
 
+// Função para atualizar exibição do carrinho (com desconto)
+function updateCartDisplay() {
+    updateCartUI();
+    renderCartItems();
+}
+
 // Adicionar produto ao carrinho
 function addToCart(productId, quantity = 1) {
     const produto = findProductById(productId);
@@ -342,6 +350,7 @@ function addToCart(productId, quantity = 1) {
     }
     
     saveCart();
+    updateCartDisplay();
     showCartNotification();
 }
 
@@ -349,7 +358,7 @@ function addToCart(productId, quantity = 1) {
 function removeFromCart(productId) {
     cart = cart.filter(item => item.id !== productId);
     saveCart();
-    renderCartItems();
+    updateCartDisplay();
 }
 
 // Atualizar quantidade no carrinho
@@ -361,7 +370,7 @@ function updateCartQuantity(productId, quantity) {
         } else {
             item.quantity = quantity;
             saveCart();
-            renderCartItems();
+            updateCartDisplay();
         }
     }
 }
@@ -401,10 +410,10 @@ function renderCartItems() {
         return;
     }
     
-    let total = 0;
+    let subtotal = 0;
     cartItems.innerHTML = cart.map(item => {
         const itemTotal = item.price * item.quantity;
-        total += itemTotal;
+        subtotal += itemTotal;
         
         return `
             <div class="cart-item">
@@ -425,6 +434,24 @@ function renderCartItems() {
         `;
     }).join('');
     
+    // Calcular total com desconto
+    const total = calcularTotalComDesconto();
+    
+    // Adicionar informações de desconto se aplicável
+    if (descontoAtivo && codigoDescontoAplicado) {
+        const desconto = (subtotal * codigoDescontoAplicado.desconto) / 100;
+        cartItems.innerHTML += `
+            <div class="cart-discount">
+                <div class="discount-info">
+                    <span>Subtotal: R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
+                    <span class="discount-applied">Desconto (${codigoDescontoAplicado.desconto}%): -R$ ${desconto.toFixed(2).replace('.', ',')}</span>
+                    <span class="discount-code">Código: ${codigoDescontoAplicado.codigo}</span>
+                </div>
+                <button class="remove-discount-btn" onclick="removerDesconto()">Remover</button>
+            </div>
+        `;
+    }
+    
     cartTotal.textContent = total.toFixed(2).replace('.', ',');
 }
 
@@ -432,12 +459,12 @@ function renderCartItems() {
 function clearCart() {
     cart = [];
     saveCart();
-    renderCartItems();
+    updateCartDisplay();
 }
 
 // Abrir modal do carrinho
 function openCartModal() {
-    renderCartItems();
+    updateCartDisplay();
     cartModal.style.display = 'block';
 }
 
@@ -458,10 +485,10 @@ function renderOrderSummary() {
     const orderSummary = document.getElementById('orderSummary');
     const orderTotal = document.getElementById('orderTotal');
     
-    let total = 0;
-    orderSummary.innerHTML = cart.map(item => {
+    let subtotal = 0;
+    let summaryHTML = cart.map(item => {
         const itemTotal = item.price * item.quantity;
-        total += itemTotal;
+        subtotal += itemTotal;
         
         return `
             <div class="order-item">
@@ -471,6 +498,30 @@ function renderOrderSummary() {
         `;
     }).join('');
     
+    // Adicionar informações de desconto se aplicável
+    if (descontoAtivo && codigoDescontoAplicado) {
+        const desconto = (subtotal * codigoDescontoAplicado.desconto) / 100;
+        summaryHTML += `
+            <div class="order-discount">
+                <div class="order-item">
+                    <span>Subtotal:</span>
+                    <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
+                </div>
+                <div class="order-item discount-applied">
+                    <span>Desconto (${codigoDescontoAplicado.desconto}%):</span>
+                    <span>-R$ ${desconto.toFixed(2).replace('.', ',')}</span>
+                </div>
+                <div class="order-item discount-code">
+                    <span>Código: ${codigoDescontoAplicado.codigo}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    orderSummary.innerHTML = summaryHTML;
+    
+    // Calcular total com desconto
+    const total = calcularTotalComDesconto();
     orderTotal.textContent = total.toFixed(2).replace('.', ',');
 }
 
@@ -501,13 +552,23 @@ async function sendToWhatsApp() {
     }
     
     message += `🛒 *PEDIDO:*\n`;
-    let total = 0;
+    let subtotal = 0;
     cart.forEach(item => {
         const itemTotal = item.price * item.quantity;
-        total += itemTotal;
+        subtotal += itemTotal;
         message += `• ${item.emoji} ${item.name} x${item.quantity} = R$ ${itemTotal.toFixed(2).replace('.', ',')}\n`;
     });
     
+    // Adicionar informações de desconto se aplicável
+    if (descontoAtivo && codigoDescontoAplicado) {
+        const desconto = (subtotal * codigoDescontoAplicado.desconto) / 100;
+        message += `\n📊 *RESUMO:*\n`;
+        message += `Subtotal: R$ ${subtotal.toFixed(2).replace('.', ',')}\n`;
+        message += `🎟️ Desconto (${codigoDescontoAplicado.desconto}%): -R$ ${desconto.toFixed(2).replace('.', ',')}\n`;
+        message += `Código: ${codigoDescontoAplicado.codigo}\n`;
+    }
+    
+    const total = calcularTotalComDesconto();
     message += `\n💰 *TOTAL: R$ ${total.toFixed(2).replace('.', ',')}*\n\n`;
     message += `⏰ *Horário:* ${new Date().toLocaleString('pt-BR')}\n\n`;
     message += `🚚 *Entrega em 30-45 minutos!*`;
@@ -575,6 +636,18 @@ async function saveOrderToFirebase(name, phone, address, notes, total) {
                 quantity: item.quantity,
                 emoji: item.emoji
             })),
+            // Informações de desconto
+            desconto: descontoAtivo ? {
+                ativo: true,
+                codigo: codigoDescontoAplicado?.codigo || '',
+                percentual: codigoDescontoAplicado?.desconto || 0,
+                parceiro: codigoDescontoAplicado?.parceiro || ''
+            } : { 
+                ativo: false,
+                codigo: '',
+                percentual: 0,
+                parceiro: ''
+            },
             total: total,
             status: 'Novo',
             timestamp: new Date(),
@@ -683,3 +756,218 @@ function setupCartEventListeners() {
         });
     }
 }
+
+// ==================== SISTEMA DE CÓDIGOS DE DESCONTO ====================
+
+// Função para validar código de desconto
+async function validarCodigoDesconto(codigo) {
+    try {
+        console.log('🔍 Validando código de desconto:', codigo);
+        
+        // Buscar código no Firebase
+        const codigosRef = db.collection('codigosDesconto');
+        const query = codigosRef.where('codigo', '==', codigo.toUpperCase()).where('ativo', '==', true);
+        const snapshot = await query.get();
+        
+        if (snapshot.empty) {
+            console.log('❌ Código não encontrado ou inativo');
+            return { valido: false, mensagem: 'Código inválido ou expirado' };
+        }
+        
+        const codigoDoc = snapshot.docs[0];
+        const codigoData = codigoDoc.data();
+        
+        // Verificar se já foi usado por este IP/navegador
+        const ipKey = `usado_${getClientFingerprint()}`;
+        if (codigoData[ipKey]) {
+            console.log('❌ Código já usado por este dispositivo');
+            return { valido: false, mensagem: 'Este código já foi utilizado neste dispositivo' };
+        }
+        
+        // Verificar limite de uso
+        const totalUsos = Object.keys(codigoData).filter(key => key.startsWith('usado_')).length;
+        if (codigoData.limiteUsos && totalUsos >= codigoData.limiteUsos) {
+            console.log('❌ Código atingiu limite de usos');
+            return { valido: false, mensagem: 'Código atingiu o limite de usos' };
+        }
+        
+        console.log('✅ Código válido!');
+        return { 
+            valido: true, 
+            codigo: codigoData.codigo,
+            desconto: codigoData.desconto || 10,
+            parceiro: codigoData.parceiro || '',
+            docId: codigoDoc.id
+        };
+        
+    } catch (error) {
+        console.error('❌ Erro ao validar código:', error);
+        return { valido: false, mensagem: 'Erro ao validar código. Tente novamente.' };
+    }
+}
+
+// Função para gerar fingerprint do cliente
+function getClientFingerprint() {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Fingerprint', 2, 2);
+    
+    const fingerprint = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset(),
+        canvas.toDataURL()
+    ].join('|');
+    
+    // Hash simples do fingerprint
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+}
+
+// Função para aplicar código de desconto
+async function aplicarCodigoDesconto() {
+    const codigoInput = document.getElementById('codigoDesconto');
+    const statusDiv = document.getElementById('descontoStatus');
+    const aplicarBtn = document.getElementById('aplicarDesconto');
+    
+    const codigo = codigoInput.value.trim().toUpperCase();
+    
+    if (!codigo) {
+        statusDiv.textContent = 'Digite um código de desconto';
+        statusDiv.className = 'desconto-status error';
+        return;
+    }
+    
+    // Desabilitar botão durante validação
+    aplicarBtn.disabled = true;
+    aplicarBtn.textContent = 'Validando...';
+    
+    try {
+        const resultado = await validarCodigoDesconto(codigo);
+        
+        if (resultado.valido) {
+            // Aplicar desconto
+            codigoDescontoAplicado = resultado;
+            descontoAtivo = true;
+            
+            console.log('✅ Desconto aplicado:', resultado);
+            console.log('✅ Cart length:', cart.length);
+            
+            // Marcar como usado no Firebase
+            await marcarCodigoComoUsado(resultado.docId);
+            
+            // Atualizar interface
+            statusDiv.textContent = `✅ Desconto de ${resultado.desconto}% aplicado! Código: ${resultado.codigo}`;
+            statusDiv.className = 'desconto-status success';
+            
+            // Atualizar carrinho se houver itens
+            if (cart.length > 0) {
+                console.log('🔄 Atualizando display do carrinho...');
+                updateCartDisplay();
+            }
+            
+            // Limpar campo
+            codigoInput.value = '';
+            
+            console.log('✅ Desconto aplicado com sucesso!');
+            
+        } else {
+            statusDiv.textContent = `❌ ${resultado.mensagem}`;
+            statusDiv.className = 'desconto-status error';
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao aplicar desconto:', error);
+        statusDiv.textContent = '❌ Erro ao aplicar desconto. Tente novamente.';
+        statusDiv.className = 'desconto-status error';
+    } finally {
+        // Reabilitar botão
+        aplicarBtn.disabled = false;
+        aplicarBtn.textContent = 'Aplicar';
+    }
+}
+
+// Função para marcar código como usado
+async function marcarCodigoComoUsado(docId) {
+    try {
+        const ipKey = `usado_${getClientFingerprint()}`;
+        const timestamp = new Date();
+        
+        await db.collection('codigosDesconto').doc(docId).update({
+            [ipKey]: {
+                timestamp: timestamp,
+                ip: await getClientIP()
+            }
+        });
+        
+        console.log('✅ Código marcado como usado');
+    } catch (error) {
+        console.error('❌ Erro ao marcar código como usado:', error);
+    }
+}
+
+// Função para obter IP do cliente (simplificada)
+async function getClientIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.log('⚠️ Não foi possível obter IP, usando fingerprint');
+        return getClientFingerprint();
+    }
+}
+
+// Função para calcular total com desconto
+function calcularTotalComDesconto() {
+    let total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (descontoAtivo && codigoDescontoAplicado) {
+        const desconto = (total * codigoDescontoAplicado.desconto) / 100;
+        total = total - desconto;
+    }
+    
+    return total;
+}
+
+// Função para remover desconto
+function removerDesconto() {
+    codigoDescontoAplicado = null;
+    descontoAtivo = false;
+    
+    const statusDiv = document.getElementById('descontoStatus');
+    statusDiv.textContent = '';
+    statusDiv.className = 'desconto-status';
+    
+    if (cart.length > 0) {
+        updateCartDisplay();
+    }
+    
+    console.log('🗑️ Desconto removido');
+}
+
+// Event listeners para desconto
+document.addEventListener('DOMContentLoaded', function() {
+    const aplicarBtn = document.getElementById('aplicarDesconto');
+    const codigoInput = document.getElementById('codigoDesconto');
+    
+    if (aplicarBtn) {
+        aplicarBtn.addEventListener('click', aplicarCodigoDesconto);
+    }
+    
+    if (codigoInput) {
+        codigoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                aplicarCodigoDesconto();
+            }
+        });
+    }
+});
