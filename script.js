@@ -1148,6 +1148,24 @@ function disableOrdering() {
         aplicarBtn.textContent = 'Loja Fechada';
     }
     
+    // Desabilitar sistema de desconto no carrinho
+    const cartCodigoInput = document.getElementById('cartCodigoDesconto');
+    const cartAplicarBtn = document.getElementById('cartAplicarDesconto');
+    
+    if (cartCodigoInput) {
+        cartCodigoInput.disabled = true;
+        cartCodigoInput.style.opacity = '0.5';
+        cartCodigoInput.style.cursor = 'not-allowed';
+        cartCodigoInput.placeholder = 'Loja fechada - Descontos indisponíveis';
+    }
+    
+    if (cartAplicarBtn) {
+        cartAplicarBtn.disabled = true;
+        cartAplicarBtn.style.opacity = '0.5';
+        cartAplicarBtn.style.cursor = 'not-allowed';
+        cartAplicarBtn.textContent = 'Loja Fechada';
+    }
+    
     // Adicionar overlay nos produtos
     const produtos = document.querySelectorAll('.produto-card');
     produtos.forEach(produto => {
@@ -1205,6 +1223,24 @@ function enableOrdering() {
         aplicarBtn.textContent = 'Aplicar';
     }
     
+    // Habilitar sistema de desconto no carrinho
+    const cartCodigoInput = document.getElementById('cartCodigoDesconto');
+    const cartAplicarBtn = document.getElementById('cartAplicarDesconto');
+    
+    if (cartCodigoInput) {
+        cartCodigoInput.disabled = false;
+        cartCodigoInput.style.opacity = '1';
+        cartCodigoInput.style.cursor = 'text';
+        cartCodigoInput.placeholder = 'Digite seu código de desconto';
+    }
+    
+    if (cartAplicarBtn) {
+        cartAplicarBtn.disabled = false;
+        cartAplicarBtn.style.opacity = '1';
+        cartAplicarBtn.style.cursor = 'pointer';
+        cartAplicarBtn.textContent = 'Aplicar';
+    }
+    
     // Remover overlays dos produtos
     const overlays = document.querySelectorAll('.produto-overlay-fechado');
     overlays.forEach(overlay => overlay.remove());
@@ -1217,3 +1253,168 @@ function canMakeOrder() {
 
 // Atualizar verificação de horário a cada minuto
 setInterval(checkBusinessHours, 60000); // 60 segundos
+
+// ==================== SISTEMA DE DESCONTO NO CARRINHO ====================
+
+// Aplicar desconto no carrinho
+async function aplicarDescontoNoCarrinho() {
+    // Verificar se a loja está aberta
+    if (!canMakeOrder()) {
+        showCartDiscountStatus('Loja fechada! Descontos indisponíveis no momento.', 'error');
+        return;
+    }
+    
+    const codigoInput = document.getElementById('cartCodigoDesconto');
+    const statusDiv = document.getElementById('cartDescontoStatus');
+    const aplicarBtn = document.getElementById('cartAplicarDesconto');
+    
+    const codigo = codigoInput.value.trim().toUpperCase();
+    
+    if (!codigo) {
+        showCartDiscountStatus('Digite um código de desconto', 'error');
+        return;
+    }
+    
+    // Desabilitar botão durante validação
+    aplicarBtn.disabled = true;
+    aplicarBtn.textContent = 'Validando...';
+    
+    try {
+        console.log('🎟️ Validando código de desconto no carrinho:', codigo);
+        
+        // Verificar se já há um desconto aplicado
+        if (descontoAtivo) {
+            showCartDiscountStatus('Já há um desconto aplicado! Remova o atual antes de aplicar outro.', 'error');
+            aplicarBtn.disabled = false;
+            aplicarBtn.textContent = 'Aplicar';
+            return;
+        }
+        
+        // Buscar código no Firebase
+        const codigosSnapshot = await db.collection('codigosDesconto').where('codigo', '==', codigo).get();
+        
+        if (codigosSnapshot.empty) {
+            showCartDiscountStatus('Código de desconto inválido!', 'error');
+            aplicarBtn.disabled = false;
+            aplicarBtn.textContent = 'Aplicar';
+            return;
+        }
+        
+        const codigoDoc = codigosSnapshot.docs[0];
+        const codigoData = codigoDoc.data();
+        
+        // Verificar se o código está ativo
+        if (!codigoData.ativo) {
+            showCartDiscountStatus('Código de desconto inativo!', 'error');
+            aplicarBtn.disabled = false;
+            aplicarBtn.textContent = 'Aplicar';
+            return;
+        }
+        
+        // Aplicar desconto
+        descontoAtivo = true;
+        codigoDescontoAplicado = {
+            codigo: codigoData.codigo,
+            desconto: codigoData.desconto || 10,
+            parceiro: codigoData.parceiro || '',
+            docId: codigoDoc.id
+        };
+        
+        // Atualizar interface
+        showCartDiscountInfo();
+        showCartDiscountStatus('Desconto aplicado com sucesso!', 'success');
+        
+        // Limpar campo
+        codigoInput.value = '';
+        
+        // Atualizar total do carrinho
+        updateCartDisplay();
+        
+        console.log('✅ Desconto aplicado no carrinho:', codigoDescontoAplicado);
+        
+    } catch (error) {
+        console.error('❌ Erro ao aplicar desconto no carrinho:', error);
+        showCartDiscountStatus('Erro ao validar código. Tente novamente.', 'error');
+    } finally {
+        aplicarBtn.disabled = false;
+        aplicarBtn.textContent = 'Aplicar';
+    }
+}
+
+// Remover desconto do carrinho
+function removerDescontoDoCarrinho() {
+    console.log('🗑️ Removendo desconto do carrinho...');
+    
+    descontoAtivo = false;
+    codigoDescontoAplicado = null;
+    
+    // Atualizar interface
+    hideCartDiscountInfo();
+    showCartDiscountStatus('Desconto removido', 'success');
+    
+    // Atualizar total do carrinho
+    updateCartDisplay();
+    
+    console.log('✅ Desconto removido do carrinho');
+}
+
+// Mostrar status do desconto no carrinho
+function showCartDiscountStatus(message, type) {
+    const statusDiv = document.getElementById('cartDescontoStatus');
+    if (statusDiv) {
+        statusDiv.textContent = message;
+        statusDiv.className = `discount-status ${type}`;
+        
+        // Limpar mensagem após 3 segundos
+        setTimeout(() => {
+            if (statusDiv.textContent === message) {
+                statusDiv.textContent = '';
+                statusDiv.className = 'discount-status';
+            }
+        }, 3000);
+    }
+}
+
+// Mostrar informações do desconto aplicado no carrinho
+function showCartDiscountInfo() {
+    const infoDiv = document.getElementById('cartDescontoInfo');
+    const codeSpan = infoDiv.querySelector('.discount-code');
+    const percentageSpan = infoDiv.querySelector('.discount-percentage');
+    
+    if (infoDiv && codeSpan && percentageSpan && codigoDescontoAplicado) {
+        codeSpan.textContent = `Código: ${codigoDescontoAplicado.codigo}`;
+        percentageSpan.textContent = `${codigoDescontoAplicado.desconto}% OFF`;
+        infoDiv.style.display = 'block';
+    }
+}
+
+// Esconder informações do desconto no carrinho
+function hideCartDiscountInfo() {
+    const infoDiv = document.getElementById('cartDescontoInfo');
+    if (infoDiv) {
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Event listeners para desconto no carrinho
+document.addEventListener('DOMContentLoaded', function() {
+    const cartAplicarBtn = document.getElementById('cartAplicarDesconto');
+    const cartCodigoInput = document.getElementById('cartCodigoDesconto');
+    const cartRemoverBtn = document.getElementById('cartRemoverDesconto');
+    
+    if (cartAplicarBtn) {
+        cartAplicarBtn.addEventListener('click', aplicarDescontoNoCarrinho);
+    }
+    
+    if (cartCodigoInput) {
+        cartCodigoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                aplicarDescontoNoCarrinho();
+            }
+        });
+    }
+    
+    if (cartRemoverBtn) {
+        cartRemoverBtn.addEventListener('click', removerDescontoDoCarrinho);
+    }
+});

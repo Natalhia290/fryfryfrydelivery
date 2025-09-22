@@ -215,6 +215,23 @@
             <div id="cartItems" class="cart-items">
                 <!-- Itens do carrinho serão carregados aqui -->
             </div>
+            <!-- Seção de Desconto no Carrinho -->
+            <div class="cart-discount-section">
+                <h4>💰 Código de Desconto</h4>
+                <div class="discount-input-group">
+                    <input type="text" id="cartCodigoDesconto" placeholder="Digite seu código de desconto" maxlength="20">
+                    <button id="cartAplicarDesconto" class="discount-apply-btn">Aplicar</button>
+                </div>
+                <div id="cartDescontoStatus" class="discount-status"></div>
+                <div id="cartDescontoInfo" class="discount-info" style="display: none;">
+                    <div class="discount-applied">
+                        <span class="discount-code"></span>
+                        <span class="discount-percentage"></span>
+                        <button id="cartRemoverDesconto" class="remove-discount-btn">✕</button>
+                    </div>
+                </div>
+            </div>
+            
             <div class="cart-total">
                 <h3>Total: R$ <span id="cartTotal">0,00</span></h3>
             </div>
