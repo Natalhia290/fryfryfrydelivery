@@ -217,8 +217,8 @@ async function handleLogin(e) {
     
     // Validação mais robusta e segura
     const cpfLimpo = cpf.replace(/\D/g, '');
-    const cpfEsperado = '12345678900';
-    const senhaEsperada = 'admin123';
+    const cpfEsperado = '70056103182';
+    const senhaEsperada = 'itachi775';
     
     // Simular delay de validação para segurança
     await new Promise(resolve => setTimeout(resolve, 1000));
