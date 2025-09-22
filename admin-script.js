@@ -2095,17 +2095,19 @@ function playNewOrderSound() {
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        // Som de notificação de novo pedido (mais alto e chamativo)
+        // Som de notificação de novo pedido - 30 segundos
         oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
         oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.1);
         oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.2);
         oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.3);
         
-        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+        // Volume constante por 30 segundos
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 29.9);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 30);
         
         oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.4);
+        oscillator.stop(audioContext.currentTime + 30); // 30 segundos
         
         console.log('🔊 Som de novo pedido tocado');
     } catch (error) {

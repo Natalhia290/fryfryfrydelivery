@@ -697,16 +697,18 @@ function playNotificationSound() {
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        // Configurar som de notificação
+        // Configurar som de notificação - 30 segundos
         oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
         oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
         oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
         
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        // Volume constante por 30 segundos
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + 29.9);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 30);
         
         oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
+        oscillator.stop(audioContext.currentTime + 30); // 30 segundos
         
         console.log('🔊 Som de notificação tocado');
     } catch (error) {
