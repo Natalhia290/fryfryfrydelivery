@@ -23,6 +23,7 @@ const closeModal = document.querySelectorAll('.close');
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
+    checkBusinessHours();
     setupEventListeners();
     loadMenuData();
     loadCart();
@@ -331,6 +332,12 @@ function updateCartDisplay() {
 
 // Adicionar produto ao carrinho
 function addToCart(productId, quantity = 1) {
+    // Verificar se a loja está aberta
+    if (!canMakeOrder()) {
+        showNotification('Loja fechada! Pedidos indisponíveis no momento.', 'error');
+        return;
+    }
+    
     const produto = findProductById(productId);
     if (!produto) return;
 
@@ -470,6 +477,12 @@ function openCartModal() {
 
 // Abrir modal de checkout
 function openCheckoutModal() {
+    // Verificar se a loja está aberta
+    if (!canMakeOrder()) {
+        showNotification('Loja fechada! Pedidos indisponíveis no momento.', 'error');
+        return;
+    }
+    
     if (cart.length === 0) {
         alert('Carrinho vazio!');
         return;
@@ -834,6 +847,14 @@ function getClientFingerprint() {
 
 // Função para aplicar código de desconto
 async function aplicarCodigoDesconto() {
+    // Verificar se a loja está aberta
+    if (!canMakeOrder()) {
+        const statusDiv = document.getElementById('descontoStatus');
+        statusDiv.textContent = 'Loja fechada! Códigos de desconto indisponíveis no momento.';
+        statusDiv.className = 'desconto-status error';
+        return;
+    }
+    
     const codigoInput = document.getElementById('codigoDesconto');
     const statusDiv = document.getElementById('descontoStatus');
     const aplicarBtn = document.getElementById('aplicarDesconto');
@@ -971,3 +992,228 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ==================== SISTEMA DE HORÁRIO DE FUNCIONAMENTO ====================
+
+// Variável global para controlar se a loja está aberta
+let isStoreOpen = true;
+
+// Verificar horário de funcionamento
+function checkBusinessHours() {
+    console.log('🕐 Verificando horário de funcionamento...');
+    
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute; // Converter para minutos
+    
+    console.log('📅 Dia da semana:', dayOfWeek, '(0=Domingo, 1=Segunda, ..., 6=Sábado)');
+    console.log('⏰ Hora atual:', currentHour + ':' + (currentMinute < 10 ? '0' : '') + currentMinute);
+    
+    let isOpen = false;
+    let nextOpenTime = '';
+    
+    // Verificar horários
+    if (dayOfWeek === 0) {
+        // Domingo - Fechado
+        isOpen = false;
+        nextOpenTime = 'Segunda-feira às 18:00';
+    } else if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        // Segunda a Sexta - 18:00 às 23:45
+        const openTime = 18 * 60; // 18:00 em minutos
+        const closeTime = 23 * 60 + 45; // 23:45 em minutos
+        
+        if (currentTime >= openTime && currentTime <= closeTime) {
+            isOpen = true;
+        } else {
+            isOpen = false;
+            if (currentTime < openTime) {
+                nextOpenTime = 'Hoje às 18:00';
+            } else {
+                nextOpenTime = 'Amanhã às 18:00';
+            }
+        }
+    } else if (dayOfWeek === 6) {
+        // Sábado - 12:00 às 22:45
+        const openTime = 12 * 60; // 12:00 em minutos
+        const closeTime = 22 * 60 + 45; // 22:45 em minutos
+        
+        if (currentTime >= openTime && currentTime <= closeTime) {
+            isOpen = true;
+        } else {
+            isOpen = false;
+            if (currentTime < openTime) {
+                nextOpenTime = 'Hoje às 12:00';
+            } else {
+                nextOpenTime = 'Segunda-feira às 18:00';
+            }
+        }
+    }
+    
+    console.log('🏪 Loja está aberta:', isOpen);
+    console.log('⏰ Próxima abertura:', nextOpenTime);
+    
+    isStoreOpen = isOpen;
+    
+    if (!isOpen) {
+        showStoreClosedCard(nextOpenTime);
+        disableOrdering();
+    } else {
+        hideStoreClosedCard();
+        enableOrdering();
+    }
+}
+
+// Mostrar card de loja fechada
+function showStoreClosedCard(nextOpenTime) {
+    console.log('🚫 Mostrando card de loja fechada...');
+    
+    const card = document.getElementById('lojaFechadaCard');
+    if (card) {
+        card.style.display = 'flex';
+        
+        // Atualizar próxima abertura se necessário
+        if (nextOpenTime) {
+            const note = card.querySelector('.loja-fechada-note');
+            if (note) {
+                note.innerHTML = `Você pode visualizar nosso cardápio, mas não é possível fazer pedidos fora do horário de funcionamento.<br><strong>Próxima abertura: ${nextOpenTime}</strong>`;
+            }
+        }
+    }
+    
+    // Configurar botão de fechar
+    const fecharBtn = document.getElementById('fecharCardBtn');
+    if (fecharBtn) {
+        fecharBtn.onclick = function() {
+            hideStoreClosedCard();
+        };
+    }
+}
+
+// Esconder card de loja fechada
+function hideStoreClosedCard() {
+    console.log('✅ Escondendo card de loja fechada...');
+    
+    const card = document.getElementById('lojaFechadaCard');
+    if (card) {
+        card.style.display = 'none';
+    }
+}
+
+// Desabilitar funcionalidades de pedido
+function disableOrdering() {
+    console.log('🚫 Desabilitando funcionalidades de pedido...');
+    
+    // Desabilitar botões de adicionar ao carrinho
+    const addToCartBtns = document.querySelectorAll('.add-to-cart-btn');
+    addToCartBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Loja fechada - Pedidos indisponíveis';
+    });
+    
+    // Desabilitar botão do carrinho
+    const cartBtn = document.getElementById('cartBtn');
+    if (cartBtn) {
+        cartBtn.style.opacity = '0.5';
+        cartBtn.style.cursor = 'not-allowed';
+        cartBtn.title = 'Loja fechada - Pedidos indisponíveis';
+    }
+    
+    // Desabilitar botão de checkout
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.disabled = true;
+        checkoutBtn.style.opacity = '0.5';
+        checkoutBtn.style.cursor = 'not-allowed';
+    }
+    
+    // Desabilitar sistema de desconto
+    const codigoInput = document.getElementById('codigoDesconto');
+    const aplicarBtn = document.getElementById('aplicarDesconto');
+    
+    if (codigoInput) {
+        codigoInput.disabled = true;
+        codigoInput.style.opacity = '0.5';
+        codigoInput.style.cursor = 'not-allowed';
+        codigoInput.placeholder = 'Loja fechada - Descontos indisponíveis';
+    }
+    
+    if (aplicarBtn) {
+        aplicarBtn.disabled = true;
+        aplicarBtn.style.opacity = '0.5';
+        aplicarBtn.style.cursor = 'not-allowed';
+        aplicarBtn.textContent = 'Loja Fechada';
+    }
+    
+    // Adicionar overlay nos produtos
+    const produtos = document.querySelectorAll('.produto-card');
+    produtos.forEach(produto => {
+        const overlay = document.createElement('div');
+        overlay.className = 'produto-overlay-fechado';
+        overlay.innerHTML = '<div class="overlay-content">🚫<br>Loja Fechada</div>';
+        produto.appendChild(overlay);
+    });
+}
+
+// Habilitar funcionalidades de pedido
+function enableOrdering() {
+    console.log('✅ Habilitando funcionalidades de pedido...');
+    
+    // Habilitar botões de adicionar ao carrinho
+    const addToCartBtns = document.querySelectorAll('.add-to-cart-btn');
+    addToCartBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.title = '';
+    });
+    
+    // Habilitar botão do carrinho
+    const cartBtn = document.getElementById('cartBtn');
+    if (cartBtn) {
+        cartBtn.style.opacity = '1';
+        cartBtn.style.cursor = 'pointer';
+        cartBtn.title = '';
+    }
+    
+    // Habilitar botão de checkout
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.disabled = false;
+        checkoutBtn.style.opacity = '1';
+        checkoutBtn.style.cursor = 'pointer';
+    }
+    
+    // Habilitar sistema de desconto
+    const codigoInput = document.getElementById('codigoDesconto');
+    const aplicarBtn = document.getElementById('aplicarDesconto');
+    
+    if (codigoInput) {
+        codigoInput.disabled = false;
+        codigoInput.style.opacity = '1';
+        codigoInput.style.cursor = 'text';
+        codigoInput.placeholder = 'Digite seu código de desconto';
+    }
+    
+    if (aplicarBtn) {
+        aplicarBtn.disabled = false;
+        aplicarBtn.style.opacity = '1';
+        aplicarBtn.style.cursor = 'pointer';
+        aplicarBtn.textContent = 'Aplicar';
+    }
+    
+    // Remover overlays dos produtos
+    const overlays = document.querySelectorAll('.produto-overlay-fechado');
+    overlays.forEach(overlay => overlay.remove());
+}
+
+// Verificar se pode fazer pedido
+function canMakeOrder() {
+    return isStoreOpen;
+}
+
+// Atualizar verificação de horário a cada minuto
+setInterval(checkBusinessHours, 60000); // 60 segundos
