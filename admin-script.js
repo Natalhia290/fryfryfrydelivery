@@ -1129,6 +1129,10 @@ window.loadCodigosDesconto = loadCodigosDesconto;
 window.criarCodigoTeste = criarCodigoTeste;
 window.testSaveCodigo = testSaveCodigo;
 window.testFirebaseDesconto = testFirebaseDesconto;
+window.getImageData = getImageData;
+window.handleProductSubmit = handleProductSubmit;
+window.openProductModal = openProductModal;
+window.handleImageUpload = handleImageUpload;
 });
 
 // Verificar autenticação
