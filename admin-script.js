@@ -1022,9 +1022,9 @@ function optimizeAndConvertImage(file) {
     const img = new Image();
     
     img.onload = function() {
-        // Definir dimensões máximas (800x600 para manter qualidade)
-        const maxWidth = 800;
-        const maxHeight = 600;
+        // Definir dimensões máximas (600x400 para compressão mais agressiva)
+        const maxWidth = 600;
+        const maxHeight = 400;
         
         let { width, height } = img;
         
@@ -1042,8 +1042,8 @@ function optimizeAndConvertImage(file) {
         // Desenhar imagem redimensionada
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Converter para base64 com qualidade otimizada
-        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        // Converter para base64 com qualidade mais agressiva
+        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
         
         // Calcular tamanho otimizado
         const optimizedSize = Math.round((optimizedDataUrl.length * 3) / 4);
@@ -1051,8 +1051,8 @@ function optimizeAndConvertImage(file) {
         console.log(`📊 Imagem otimizada: ${formatFileSize(file.size)} → ${formatFileSize(optimizedSize)}`);
         
         // Verificar se ainda está dentro do limite do Firestore
-        if (optimizedSize > 500000) { // 500KB limite seguro
-            showNotification('⚠️ Imagem ainda muito grande após otimização. Tente uma imagem menor.', 'warning');
+        if (optimizedSize > 300000) { // 300KB limite mais seguro
+            showNotification('⚠️ Imagem ainda muito grande após otimização. Tente uma imagem menor ou use a otimização automática.', 'warning');
         }
         
         displayImagePreview(optimizedDataUrl, file.name, optimizedSize);
@@ -1655,8 +1655,19 @@ async function handleProductSubmit(e) {
         console.log(`📊 Tamanho do documento: ${formatFileSize(documentSize)}`);
         
         if (documentSize > 1000000) { // 1MB limite do Firestore
-            showNotification('⚠️ Documento muito grande! Remova algumas imagens ou otimize-as.', 'warning');
-            return;
+            showNotification('⚠️ Documento muito grande! Otimizando automaticamente...', 'warning');
+            
+            // Otimizar automaticamente todas as imagens
+            await optimizeAllImages();
+            
+            // Verificar tamanho novamente após otimização
+            const newDocumentSize = JSON.stringify(menuData).length;
+            if (newDocumentSize > 1000000) {
+                showNotification('❌ Documento ainda muito grande após otimização. Remova algumas imagens.', 'error');
+                return;
+            } else {
+                showNotification('✅ Documento otimizado com sucesso!', 'success');
+            }
         }
         
         // Salvar no Firebase
@@ -2343,9 +2354,9 @@ async function optimizeExistingImage(imageDataUrl) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Definir dimensões máximas
-            const maxWidth = 800;
-            const maxHeight = 600;
+            // Definir dimensões máximas (mais agressivas)
+            const maxWidth = 500;
+            const maxHeight = 350;
             
             let { width, height } = img;
             
@@ -2362,8 +2373,8 @@ async function optimizeExistingImage(imageDataUrl) {
             // Desenhar imagem otimizada
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Converter para base64 otimizado
-            const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            // Converter para base64 com compressão mais agressiva
+            const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
             resolve(optimizedDataUrl);
         };
         
@@ -2414,4 +2425,98 @@ async function removeProductImages(productIds) {
         console.error('Erro ao remover imagens:', error);
         showNotification('Erro ao remover imagens: ' + error.message, 'error');
     }
+}
+
+// Super otimização - compressão máxima
+async function superOptimizeImages() {
+    try {
+        console.log('🔥 Iniciando SUPER otimização de todas as imagens...');
+        
+        const doc = await db.collection('cardapio').doc('menu').get();
+        if (!doc.exists) {
+            showNotification('Nenhum documento encontrado!', 'error');
+            return;
+        }
+        
+        const menuData = doc.data();
+        let optimizedCount = 0;
+        let totalSaved = 0;
+        
+        // Percorrer todas as categorias
+        for (const category in menuData) {
+            if (Array.isArray(menuData[category])) {
+                for (const produto of menuData[category]) {
+                    if (produto.image && produto.image.startsWith('data:image/')) {
+                        // Super otimizar imagem existente
+                        const superOptimizedImage = await superOptimizeExistingImage(produto.image);
+                        if (superOptimizedImage && superOptimizedImage !== produto.image) {
+                            const originalSize = Math.round((produto.image.length * 3) / 4);
+                            const newSize = Math.round((superOptimizedImage.length * 3) / 4);
+                            const saved = originalSize - newSize;
+                            
+                            produto.image = superOptimizedImage;
+                            optimizedCount++;
+                            totalSaved += saved;
+                            
+                            console.log(`🔥 ${produto.name}: ${formatFileSize(originalSize)} → ${formatFileSize(newSize)}`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (optimizedCount > 0) {
+            // Salvar documento super otimizado
+            await db.collection('cardapio').doc('menu').set(menuData);
+            localStorage.setItem('fryMenuData', JSON.stringify(menuData));
+            
+            showNotification(`🔥 ${optimizedCount} imagens SUPER otimizadas! Economia: ${formatFileSize(totalSaved)}`, 'success');
+        } else {
+            showNotification('Nenhuma imagem precisa de super otimização!', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Erro na super otimização:', error);
+        showNotification('Erro ao super otimizar imagens: ' + error.message, 'error');
+    }
+}
+
+// Super otimizar uma imagem existente (compressão máxima)
+async function superOptimizeExistingImage(imageDataUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Definir dimensões máximas (super agressivas)
+            const maxWidth = 400;
+            const maxHeight = 300;
+            
+            let { width, height } = img;
+            
+            // Calcular novas dimensões
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar imagem super otimizada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para base64 com compressão máxima
+            const superOptimizedDataUrl = canvas.toDataURL('image/jpeg', 0.3);
+            resolve(superOptimizedDataUrl);
+        };
+        
+        img.onerror = function() {
+            resolve(imageDataUrl); // Retornar original se houver erro
+        };
+        
+        img.src = imageDataUrl;
+    });
 }
