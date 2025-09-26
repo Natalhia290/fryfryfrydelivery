@@ -1013,6 +1013,63 @@ function initializeImageUpload() {
     console.log('✅ Sistema de upload de imagens inicializado!');
 }
 
+// Otimizar imagem para reduzir tamanho
+function optimizeAndConvertImage(file) {
+    console.log('🔧 Otimizando imagem...');
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = function() {
+        // Definir dimensões máximas (800x600 para manter qualidade)
+        const maxWidth = 800;
+        const maxHeight = 600;
+        
+        let { width, height } = img;
+        
+        // Calcular novas dimensões mantendo proporção
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = width * ratio;
+            height = height * ratio;
+        }
+        
+        // Configurar canvas
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Desenhar imagem redimensionada
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Converter para base64 com qualidade otimizada
+        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Calcular tamanho otimizado
+        const optimizedSize = Math.round((optimizedDataUrl.length * 3) / 4);
+        
+        console.log(`📊 Imagem otimizada: ${formatFileSize(file.size)} → ${formatFileSize(optimizedSize)}`);
+        
+        // Verificar se ainda está dentro do limite do Firestore
+        if (optimizedSize > 500000) { // 500KB limite seguro
+            showNotification('⚠️ Imagem ainda muito grande após otimização. Tente uma imagem menor.', 'warning');
+        }
+        
+        displayImagePreview(optimizedDataUrl, file.name, optimizedSize);
+    };
+    
+    img.onerror = function() {
+        showNotification('Erro ao processar imagem. Tente novamente.', 'error');
+    };
+    
+    // Carregar imagem
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 // Processar arquivo de imagem
 function handleImageFile(file) {
     console.log('📷 Processando arquivo de imagem:', file.name);
@@ -1029,12 +1086,8 @@ function handleImageFile(file) {
         return;
     }
     
-    // Converter para Base64
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        displayImagePreview(e.target.result, file.name, file.size);
-    };
-    reader.readAsDataURL(file);
+    // Otimizar e converter para Base64
+    optimizeAndConvertImage(file);
 }
 
 // Exibir preview da imagem
@@ -1045,11 +1098,26 @@ function displayImagePreview(imageData, fileName, fileSize) {
     // Esconder área de upload
     imageUploadArea.style.display = 'none';
     
+    // Determinar status da otimização
+    let statusIcon = '✅';
+    let statusText = 'Otimizada';
+    if (fileSize > 500000) {
+        statusIcon = '⚠️';
+        statusText = 'Grande';
+    } else if (fileSize < 100000) {
+        statusIcon = '🎯';
+        statusText = 'Perfeita';
+    }
+    
     // Mostrar preview
     imagePreview.innerHTML = `
         <img src="${imageData}" alt="Preview da imagem">
         <div class="image-info">
             📷 ${fileName} (${formatFileSize(fileSize)})
+            <br>
+            <small style="color: ${fileSize > 500000 ? '#ff6b6b' : fileSize < 100000 ? '#51cf66' : '#ffd43b'};">
+                ${statusIcon} ${statusText}
+            </small>
         </div>
         <div class="image-actions">
             <button type="button" class="btn-change-image" onclick="changeImage()">
@@ -1580,6 +1648,15 @@ async function handleProductSubmit(e) {
             }
         } else {
             console.log('📷 Nenhuma imagem selecionada');
+        }
+        
+        // Verificar tamanho do documento antes de salvar
+        const documentSize = JSON.stringify(menuData).length;
+        console.log(`📊 Tamanho do documento: ${formatFileSize(documentSize)}`);
+        
+        if (documentSize > 1000000) { // 1MB limite do Firestore
+            showNotification('⚠️ Documento muito grande! Remova algumas imagens ou otimize-as.', 'warning');
+            return;
         }
         
         // Salvar no Firebase
@@ -2166,4 +2243,162 @@ function showNewOrderNotification(count) {
             notification.remove();
         }, 300);
     }, 5000);
+}
+
+// ===== FUNÇÕES DE OTIMIZAÇÃO DO FIRESTORE =====
+
+// Verificar tamanho atual do documento
+async function checkDocumentSize() {
+    try {
+        const doc = await db.collection('cardapio').doc('menu').get();
+        if (doc.exists) {
+            const data = doc.data();
+            const size = JSON.stringify(data).length;
+            console.log(`📊 Tamanho atual do documento: ${formatFileSize(size)}`);
+            
+            if (size > 1000000) {
+                showNotification(`⚠️ Documento muito grande (${formatFileSize(size)})! Use a função de limpeza.`, 'warning');
+                return false;
+            }
+            return true;
+        }
+    } catch (error) {
+        console.error('Erro ao verificar tamanho:', error);
+    }
+    return true;
+}
+
+// Otimizar todas as imagens do documento
+async function optimizeAllImages() {
+    try {
+        console.log('🔧 Iniciando otimização de todas as imagens...');
+        
+        const doc = await db.collection('cardapio').doc('menu').get();
+        if (!doc.exists) {
+            showNotification('Nenhum documento encontrado!', 'error');
+            return;
+        }
+        
+        const menuData = doc.data();
+        let optimizedCount = 0;
+        let totalSaved = 0;
+        
+        // Percorrer todas as categorias
+        for (const category in menuData) {
+            if (Array.isArray(menuData[category])) {
+                for (const produto of menuData[category]) {
+                    if (produto.image && produto.image.startsWith('data:image/')) {
+                        // Otimizar imagem existente
+                        const optimizedImage = await optimizeExistingImage(produto.image);
+                        if (optimizedImage && optimizedImage !== produto.image) {
+                            const originalSize = Math.round((produto.image.length * 3) / 4);
+                            const newSize = Math.round((optimizedImage.length * 3) / 4);
+                            const saved = originalSize - newSize;
+                            
+                            produto.image = optimizedImage;
+                            optimizedCount++;
+                            totalSaved += saved;
+                            
+                            console.log(`✅ ${produto.name}: ${formatFileSize(originalSize)} → ${formatFileSize(newSize)}`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (optimizedCount > 0) {
+            // Salvar documento otimizado
+            await db.collection('cardapio').doc('menu').set(menuData);
+            localStorage.setItem('fryMenuData', JSON.stringify(menuData));
+            
+            showNotification(`🎉 ${optimizedCount} imagens otimizadas! Economia: ${formatFileSize(totalSaved)}`, 'success');
+        } else {
+            showNotification('Nenhuma imagem precisa de otimização!', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Erro na otimização:', error);
+        showNotification('Erro ao otimizar imagens: ' + error.message, 'error');
+    }
+}
+
+// Otimizar uma imagem existente (base64)
+async function optimizeExistingImage(imageDataUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Definir dimensões máximas
+            const maxWidth = 800;
+            const maxHeight = 600;
+            
+            let { width, height } = img;
+            
+            // Calcular novas dimensões
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar imagem otimizada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para base64 otimizado
+            const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            resolve(optimizedDataUrl);
+        };
+        
+        img.onerror = function() {
+            resolve(imageDataUrl); // Retornar original se houver erro
+        };
+        
+        img.src = imageDataUrl;
+    });
+}
+
+// Remover imagens de produtos específicos para reduzir tamanho
+async function removeProductImages(productIds) {
+    try {
+        const doc = await db.collection('cardapio').doc('menu').get();
+        if (!doc.exists) {
+            showNotification('Nenhum documento encontrado!', 'error');
+            return;
+        }
+        
+        const menuData = doc.data();
+        let removedCount = 0;
+        
+        // Percorrer todas as categorias
+        for (const category in menuData) {
+            if (Array.isArray(menuData[category])) {
+                for (const produto of menuData[category]) {
+                    if (productIds.includes(produto.id) && produto.image) {
+                        produto.image = null;
+                        removedCount++;
+                        console.log(`🗑️ Imagem removida do produto: ${produto.name}`);
+                    }
+                }
+            }
+        }
+        
+        if (removedCount > 0) {
+            // Salvar documento atualizado
+            await db.collection('cardapio').doc('menu').set(menuData);
+            localStorage.setItem('fryMenuData', JSON.stringify(menuData));
+            
+            showNotification(`🗑️ ${removedCount} imagens removidas com sucesso!`, 'success');
+        } else {
+            showNotification('Nenhuma imagem foi removida!', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao remover imagens:', error);
+        showNotification('Erro ao remover imagens: ' + error.message, 'error');
+    }
 }
