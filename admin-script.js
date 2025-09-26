@@ -2245,6 +2245,19 @@ function showNewOrderNotification(count) {
     }, 5000);
 }
 
+// ===== FUNÇÕES AUXILIARES =====
+
+// Formatar tamanho de arquivo em formato legível
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 // ===== FUNÇÕES DE OTIMIZAÇÃO DO FIRESTORE =====
 
 // Verificar tamanho atual do documento
